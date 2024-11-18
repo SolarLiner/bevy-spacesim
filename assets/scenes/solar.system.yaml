@@ -1,0 +1,107 @@
+camera:
+  target: "Earth"
+  translation: [6600.0e3, 0.0, 0.0]
+  rotation: [0.0, 0.0, 0.0]
+root:
+  name: Sun
+  mass: 1.989e30
+  radius: 696340e3
+  siderial-day: 25.38
+  material:
+    color: [ 1.0, 1.0, 1.0 ]
+    emissive-power: 120e3
+  inclination: 0.0
+  satellites:
+    - name: Mercury
+      mass: 3.285e23
+      radius: 2439.7e3
+      siderial-day: 58.646
+      material:
+        color: [ 0.5, 0.5, 0.5 ]
+      inclination: 7.0
+      orbit:
+        semi-major-axis: 57.91e9
+        eccentricity: 0.2056
+        inclination: 7.0
+        longitude-of-ascending-node: 48.331
+        argument-of-periapsis: 29.124
+    - name: Venus
+      mass: 4.867e24
+      radius: 6051.8e3
+      siderial-day: 243.025
+      material:
+        color: [ 0.8, 0.8, 0.0 ]
+      inclination: 3.4
+      orbit:
+        semi-major-axis: 108.21e9
+        eccentricity: 0.0068
+        inclination: 3.4
+        longitude-of-ascending-node: 76.680
+        argument-of-periapsis: 54.884
+    - name: Earth
+      mass: 5.972e24
+      radius: 6371.0e3
+      siderial-day: 0.997
+      material:
+        color: [ 0.2, 0.5, 1.0 ]
+      inclination: 0.0
+      orbit:
+        semi-major-axis: 149.60e9
+        eccentricity: 0.0167
+        inclination: 0.0
+        longitude-of-ascending-node: -11.260
+        argument-of-periapsis: 114.207
+      satellites:
+        - name: Moon
+          mass: 7.342e22
+          radius: 1737.1e3
+          siderial-day: 27.322
+          material:
+            color: [ 0.5, 0.5, 0.5 ]
+          inclination: 5.1
+          orbit:
+            semi-major-axis: 384.40e6
+            eccentricity: 0.0549
+            inclination: 5.1
+            longitude-of-ascending-node: 125.080
+            argument-of-periapsis: 318.150
+    - name: Mars
+      mass: 6.417e23
+      radius: 3389.5e3
+      siderial-day: 1.026
+      material:
+        color: [ 1.0, 0.2, 0.2 ]
+      inclination: 1.9
+      orbit:
+        semi-major-axis: 227.92e9
+        eccentricity: 0.0934
+        inclination: 1.9
+        longitude-of-ascending-node: 49.558
+        argument-of-periapsis: 286.502
+        satellites:
+          - name: Phobos
+            mass: 1.0659e16
+            radius: 11.1e3
+            siderial-day: 0.319
+            material:
+              color: [ 0.2, 0.2, 0.1 ]
+            inclination: 1.1
+            orbit:
+              semi-major-axis: 9376.0e3
+              eccentricity: 0.0151
+              inclination: 1.1
+              longitude-of-ascending-node: 207.8
+              argument-of-periapsis: 150.1
+          - name: Deimos
+            mass: 1.4762e15
+            radius: 6.2e3
+            siderial-day: 1.262
+            material:
+              color: [ 0.2, 0.2, 0.1 ]
+            inclination: 1.8
+            orbit:
+              semi-major-axis: 23463.2e3
+              eccentricity: 0.0002
+              inclination: 1.8
+              longitude-of-ascending-node: 24.6
+              argument-of-periapsis: 260.0
