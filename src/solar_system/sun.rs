@@ -1,11 +1,5 @@
-use crate::solar_system::body::SiderialDay;
-use crate::solar_system::{body, Mass};
-use crate::space;
-use bevy::asset::Handle;
-use bevy::pbr::{CascadeShadowConfigBuilder, NotShadowCaster, PbrBundle};
+use bevy::pbr::CascadeShadowConfigBuilder;
 use bevy::prelude::*;
-use big_space::{GridCell, ReferenceFrameCommands};
-use std::borrow::Cow;
 
 pub struct SunPlugin;
 

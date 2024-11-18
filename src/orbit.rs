@@ -21,14 +21,35 @@ type Real = f64;
 
 const G: Real = 6.67430e-11;
 
+mod serialize_as_degrees {
+    use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
+    pub fn serialize<S>(value: &f64, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        value.to_degrees().serialize(serializer)
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<f64, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        f64::deserialize(deserializer).map(|v| v.to_radians())
+    }
+}
+
 #[derive(Debug, Clone, Copy, Component, Deserialize, Serialize, Reflect)]
 #[reflect(Component, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Orbit {
     pub semi_major_axis: Real,
     pub eccentricity: Real,
+    #[serde(with = "serialize_as_degrees")]
     pub inclination: Real,
+    #[serde(with = "serialize_as_degrees")]
     pub longitude_of_ascending_node: Real,
+    #[serde(with = "serialize_as_degrees")]
     pub argument_of_periapsis: Real,
 }
 
@@ -58,7 +79,8 @@ impl Orbit {
     pub fn point_on_orbit(&self, mass: Real, t: Real) -> DVec3 {
         let mean_anomaly = self.mean_angular_motion(mass) * t;
         let eccentric_anomaly = self.eccentric_anomaly(mean_anomaly);
-        let true_anomaly = 2.0 * (1.0 + self.eccentricity).sqrt() * (eccentric_anomaly / 2.0).tan();
+        let true_anomaly = self.argument_of_periapsis
+            + 2.0 * (1.0 + self.eccentricity).sqrt() * (eccentric_anomaly / 2.0).tan();
         let r = self.semi_major_axis * (1.0 - self.eccentricity.powi(2)).sqrt()
             / (1.0 + self.eccentricity * true_anomaly.cos());
         let x = r * true_anomaly.cos();
@@ -99,7 +121,6 @@ fn update_positions(
     let t = time.elapsed_seconds_f64();
     for (mut transform, mut grid, frame, mass, orbit) in &mut q {
         let pos = orbit.point_on_orbit(**mass, t);
-        info!("Point on orbit: {:?}", pos);
         let (new_grid, pos) = frame.translation_to_grid(pos);
         *grid = new_grid;
         transform.translation = pos;
@@ -108,7 +129,9 @@ fn update_positions(
 
 fn draw_orbits(mut g: Gizmos, q: Query<(&Parent, &Orbit)>, q_transform: Query<&GlobalTransform>) {
     for (parent, orbit) in &mut q.iter() {
-        let transform = q_transform.get(**parent).unwrap().compute_transform();
+        let Ok(transform) = q_transform.get(**parent).map(|t| t.compute_transform()) else {
+            continue;
+        };
         let position = transform.translation;
         let rotation = transform.rotation
             * Quat::from_rotation_y(orbit.longitude_of_ascending_node as _)

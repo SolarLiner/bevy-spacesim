@@ -15,11 +15,11 @@ pub struct PlanetMaterial {
     pub texture: Option<String>,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize, Reflect)]
-#[reflect(Serialize, Deserialize, no_field_bounds)]
+#[derive(Debug, Clone, Deserialize, Serialize, Component, Reflect)]
+#[reflect(Component, Serialize, Deserialize, no_field_bounds)]
 #[serde(untagged)]
 pub enum MaterialSource {
-    Path(String),
+    // Path(String),
     Inline(PlanetMaterial),
 }
 

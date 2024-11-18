@@ -1290,8 +1290,6 @@ dependencies = [
 [[package]]
 name = "big_space"
 version = "0.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1ca3d5220af341ec2d80fc282cae68c25af80faab7482e7fd7cf75a325df1032"
 dependencies = [
  "bevy_app",
  "bevy_color",

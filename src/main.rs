@@ -3,10 +3,14 @@ mod orbit;
 mod solar_system;
 mod space;
 
+use crate::solar_system::body;
+use bevy::core_pipeline::bloom::BloomSettings;
 use bevy::prelude::*;
 use bevy_editor_pls::controls;
 use bevy_editor_pls::controls::EditorControls;
 use bevy_editor_pls::editor::Editor;
+use big_space::camera::CameraController;
+use big_space::{BigSpaceCommands, FloatingOrigin};
 
 fn main() {
     App::new()
@@ -18,12 +22,16 @@ fn main() {
                     mode: AssetMode::Processed,
                     ..default()
                 }),
-            big_space::BigSpacePlugin::<space::PrecisionBase>::new(true),
+            big_space::BigSpacePlugin::<space::PrecisionBase>::new(false),
             big_space::debug::FloatingOriginDebugPlugin::<i64>::default(),
             big_space::camera::CameraControllerPlugin::<space::PrecisionBase>::default(),
             bevy_editor_pls::EditorPlugin::default(),
         ))
-        .add_plugins((solar_system::SolarSystemPlugin, orbit::OrbitPlugin))
+        .add_plugins((
+            solar_system::SolarSystemPlugin,
+            body::BodyPlugin,
+            orbit::OrbitPlugin,
+        ))
         .insert_resource(ClearColor(Color::BLACK))
         .insert_resource(AmbientLight {
             color: Color::WHITE,
@@ -58,6 +66,22 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn(DynamicSceneBundle {
         scene: asset_server.load("scenes/solar.system.yaml"),
         ..default()
+    });
+    commands.spawn_big_space(space::reference_frame(), |commands| {
+        commands.insert(
+            CameraController::default() // Built-in camera controller
+                .with_speed_bounds([0.1, 10e35])
+                .with_smoothness(0.9, 0.9)
+                .with_speed(1.0),
+        );
+        commands.spawn_spatial((
+            Camera3dBundle {
+                transform: Transform::from_xyz(0.0, 4.0, 22.0),
+                ..default()
+            },
+            BloomSettings::default(),
+            FloatingOrigin,
+        ));
     });
 }
 
