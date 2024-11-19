@@ -1,6 +1,6 @@
 camera:
   target: "Earth"
-  translation: [6600.0e3, 0.0, 0.0]
+  translation: [6601.0e3, 0.0, 0.0]
   rotation: [0.0, 0.0, 0.0]
 root:
   name: Sun

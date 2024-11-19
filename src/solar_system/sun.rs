@@ -1,25 +1,29 @@
+use crate::space;
 use bevy::pbr::CascadeShadowConfigBuilder;
 use bevy::prelude::*;
+use big_space::{BigSpaceCommands, ReferenceFrame};
 
 pub struct SunPlugin;
 
 impl Plugin for SunPlugin {
     fn build(&self, app: &mut App) {
-        app.register_type::<Sunlight>()
-            .add_systems(Startup, setup_sunlight)
-            .add_systems(
-                Update,
-                sun_lighting
-                    .in_set(TransformSystem::TransformPropagate)
-                    .after(bevy::transform::systems::sync_simple_transforms)
-                    .after(bevy::transform::systems::propagate_transforms)
-                    .after(big_space::FloatingOriginSet::PropagateLowPrecision),
-            );
+        app.register_type::<Sun>()
+            .register_type::<Sunlight>()
+        .add_systems(Startup, setup_sunlight)
+        .add_systems(
+            Update,
+            sun_lighting
+                .in_set(TransformSystem::TransformPropagate)
+                .after(bevy::transform::systems::sync_simple_transforms)
+                .after(bevy::transform::systems::propagate_transforms)
+                .after(big_space::FloatingOriginSet::PropagateLowPrecision),
+        );
     }
 }
 
-#[derive(Debug, Clone, Copy, Component)]
-pub struct Sun;
+#[derive(Debug, Clone, Copy, Component, Reflect)]
+#[reflect(Component)]
+pub struct Sun(pub(crate) f32);
 
 impl Sun {
     pub const MASS: f64 = 1.989e30;

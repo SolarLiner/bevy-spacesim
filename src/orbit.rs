@@ -113,7 +113,7 @@ fn update_positions(
     mut q: Query<(
         &mut Transform,
         &mut space::Grid,
-        &ReferenceFrame<space::PrecisionBase>,
+        &ReferenceFrame<space::Precision>,
         &Mass,
         &Orbit,
     )>,
@@ -135,7 +135,7 @@ fn draw_orbits(mut g: Gizmos, q: Query<(&Parent, &Orbit)>, q_transform: Query<&G
         let position = transform.translation;
         let rotation = transform.rotation
             * Quat::from_rotation_y(orbit.longitude_of_ascending_node as _)
-            * Quat::from_rotation_x(orbit.inclination as _);
+            * Quat::from_rotation_x((consts::FRAC_PI_2 + orbit.inclination) as f32);
         let half_size = Vec2::new(
             orbit.semi_major_axis as f32,
             (orbit.semi_major_axis * (1.0 - orbit.eccentricity.powi(2)).sqrt()) as f32,

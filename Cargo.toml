@@ -11,9 +11,10 @@ num-traits = "0.2.19"
 serde = { version = "1.0.215", features = ["derive"] }
 serde_yaml = "0.9.33"
 thiserror = "2.0.3"
+log = "0.4.22"
 
 [features]
-dev = ["bevy/asset_processor", "bevy/dynamic_linking", "bevy/file_watcher"]
+dev = ["bevy/asset_processor", "bevy/file_watcher"]
 
 [profile.dev]
 opt-level = 1

@@ -10,14 +10,19 @@ use bevy::asset::saver::{AssetSaver, SavedAsset};
 use bevy::asset::{AssetLoader, AsyncReadExt, AsyncWriteExt, LoadContext, StrongHandle};
 use bevy::core_pipeline::bloom::BloomSettings;
 use bevy::core_pipeline::tonemapping::Tonemapping;
+use bevy::ecs::entity::Entities;
 use bevy::log::LogPlugin;
 use bevy::math::DVec3;
 use bevy::prelude::*;
+use bevy::render::camera::Exposure;
 use bevy::scene::SceneLoader as BevySceneLoader;
 use bevy::utils::ConditionalSendFuture;
 use bevy::winit::WinitPlugin;
 use big_space::camera::CameraController;
-use big_space::{BigSpaceCommands, ReferenceFrame, ReferenceFrameCommands};
+use big_space::{
+    BigSpaceCommands, FloatingOrigin, GridCell, ReferenceFrame, ReferenceFrameCommands,
+};
+use log::debug;
 use std::sync::Arc;
 use thiserror::Error;
 
@@ -27,7 +32,8 @@ type Processor = LoadAndSave<SceneLoader, SceneSaver>;
 
 impl Plugin for PlanetSceneProcessorPlugin {
     fn build(&self, app: &mut App) {
-        app.register_asset_loader(SceneLoader)
+        app.register_type::<CameraTarget>()
+            .register_asset_loader(SceneLoader)
             .register_asset_processor::<Processor>(Processor::from(SceneSaver))
             .set_default_asset_processor::<Processor>("system.yaml");
     }
@@ -83,7 +89,7 @@ impl AssetSaver for SceneSaver {
                 .disable::<WindowPlugin>()
                 .disable::<WinitPlugin>()
                 .disable::<LogPlugin>(),
-            big_space::BigSpacePlugin::<space::PrecisionBase>::new(false),
+            big_space::BigSpacePlugin::<space::Precision>::new(false),
             body::BodyPlugin,
             orbit::OrbitPlugin,
             sun::SunPlugin,
@@ -91,6 +97,7 @@ impl AssetSaver for SceneSaver {
         .register_type::<Mass>()
         .register_type::<SiderialDay>()
         .register_type::<MaterialSource>()
+        .register_type::<CameraTarget>()
         .init_resource::<super::StaticAssets>();
         app.finish();
 
@@ -211,6 +218,10 @@ pub fn load_planet_config(world: &mut World, config: &PlanetConfig) -> Vec<Entit
     world.resource_scope::<AssetServer, _>(|world, asset_server| {
         let mut commands = world.commands();
         commands.spawn_big_space(space::reference_frame(), |root_frame| {
+            root_frame.insert((
+                GridCell::<space::Precision>::default(),
+                TransformBundle::default(),
+            ));
             entities.push(root_frame.id());
             load_planet_config_inner(
                 &mut entities,
@@ -230,7 +241,7 @@ fn load_planet_config_inner(
     entities: &mut Vec<Entity>,
     asset_server: &AssetServer,
     mesh: &Handle<Mesh>,
-    frame: &mut ReferenceFrameCommands<space::PrecisionBase>,
+    frame: &mut ReferenceFrameCommands<space::Precision>,
     config: &PlanetConfig,
     is_sun: bool,
 ) {
@@ -262,7 +273,7 @@ fn load_planet_config_inner(
             entities.push(rot.id());
             entities.push(body_id);
             if is_sun {
-                rot.insert(sun::Sun);
+                rot.insert(sun::Sun(config.radius));
             }
         });
 
@@ -276,39 +287,22 @@ fn load_planet_config_inner(
     });
 }
 
+#[derive(Component, Reflect)]
+#[reflect(Component)]
+pub struct CameraTarget;
+
 fn setup_camera(world: &mut World, config: &CameraConfig) -> Result<(), SceneLoadError> {
     let (entity, frame) = world
-        .query::<(Entity, &mut ReferenceFrame<space::PrecisionBase>, &Name)>()
+        .query::<(Entity, &mut ReferenceFrame<space::Precision>, &Name)>()
         .iter_mut(world)
         .find_map(|(entity, frame, name)| {
             (name.as_str() == config.target.as_str()).then(|| (entity, frame.clone()))
         })
         .ok_or(SceneLoadError::CameraTargetNotFound(config.target.clone()))?;
+    debug!("Found entity {entity} for target {}", config.target);
     let (cell, local_pos) = frame.translation_to_grid(config.translation);
-    let mut camera_entity = None;
-    world.commands().spawn_big_space(frame, |camera_frame| {
-        camera_entity.replace(camera_frame.id());
-        camera_frame.insert((Name::new("Camera"), cell));
-        camera_frame.spawn_spatial((
-            Camera3dBundle {
-                camera: Camera {
-                    hdr: true,
-                    ..default()
-                },
-                transform: Transform::from_translation(local_pos).with_rotation(Quat::from_euler(
-                    EulerRot::XZY,
-                    config.rotation.x,
-                    config.rotation.y,
-                    config.rotation.z,
-                )),
-                ..default()
-            },
-            BloomSettings::default(),
-        ));
-    });
     world
-        .commands()
-        .entity(camera_entity.unwrap())
-        .set_parent(entity);
+        .entity_mut(entity)
+        .insert((CameraTarget, cell, Transform::from_translation(local_pos)));
     Ok(())
 }

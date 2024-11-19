@@ -34,12 +34,12 @@ impl SiderialDay {
 }
 
 pub fn spawn(
-    commands: &mut ReferenceFrameCommands<space::PrecisionBase>,
+    commands: &mut ReferenceFrameCommands<space::Precision>,
     name: impl Into<Cow<'static, str>>,
     mesh: Handle<Mesh>,
     original_material: MaterialSource,
     material: Handle<StandardMaterial>,
-    cell: GridCell<space::PrecisionBase>,
+    cell: GridCell<space::Precision>,
     local_pos: Vec3,
     siderial_day: SiderialDay,
     radius: f32,

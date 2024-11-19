@@ -4,6 +4,7 @@ mod manifest;
 mod processor;
 
 pub use manifest::MaterialSource;
+pub use processor::CameraTarget;
 
 pub struct PlanetScenePlugin;
 
