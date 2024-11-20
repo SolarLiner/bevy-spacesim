@@ -25,12 +25,6 @@ impl Plugin for SunPlugin {
 #[reflect(Component)]
 pub struct Sun(pub(crate) f32);
 
-impl Sun {
-    pub const MASS: f64 = 1.989e30;
-    pub const RADIUS: f64 = 6.9634e8;
-    pub const SIDEREAL_DAY: f64 = 609.12;
-}
-
 #[derive(Component, Reflect)]
 #[reflect(Component)]
 struct Sunlight;

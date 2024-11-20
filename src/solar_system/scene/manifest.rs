@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use bevy::prelude::*;
 use bevy::math::{DVec3, Vec3};
 use bevy::asset::Asset;
-use crate::orbit::Orbit;
+use crate::solar_system::orbit::KeplerElements;
 
 #[derive(Debug, Clone, Deserialize, Serialize, Reflect)]
 #[reflect(Serialize, Deserialize, no_field_bounds)]
@@ -33,7 +33,7 @@ pub struct PlanetConfig {
     pub siderial_day: f64,
     pub material: MaterialSource,
     pub inclination: f32,
-    pub orbit: Option<Orbit>,
+    pub orbit: Option<KeplerElements>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub satellites: Vec<PlanetConfig>,
 }

@@ -13,6 +13,9 @@ serde_yaml = "0.9.33"
 thiserror = "2.0.3"
 log = "0.4.22"
 
+[dev-dependencies]
+approx = "0.5.1"
+
 [features]
 dev = ["bevy/asset_processor", "bevy/bevy_dev_tools", "bevy/file_watcher"]
 

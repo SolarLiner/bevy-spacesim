@@ -370,6 +370,7 @@ dependencies = [
 name = "bevy-spacesim"
 version = "0.1.0"
 dependencies = [
+ "approx",
  "bevy",
  "bevy_editor_pls",
  "big_space",
@@ -1313,7 +1314,6 @@ version = "0.7.0"
 dependencies = [
  "bevy_app",
  "bevy_color",
- "bevy_core",
  "bevy_ecs",
  "bevy_gizmos",
  "bevy_hierarchy",

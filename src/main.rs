@@ -1,5 +1,4 @@
 mod math;
-mod orbit;
 mod screen_space;
 mod solar_system;
 mod space;
@@ -20,6 +19,7 @@ use bevy_editor_pls::controls::EditorControls;
 use bevy_editor_pls::editor::Editor;
 use big_space::camera::CameraController;
 use big_space::{BigSpaceCommands, FloatingOrigin, GridCell, ReferenceFrame};
+use solar_system::orbit;
 
 fn main() {
     let mut app = App::new();

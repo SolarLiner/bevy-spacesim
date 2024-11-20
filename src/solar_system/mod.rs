@@ -4,6 +4,7 @@ use bevy::prelude::*;
 pub mod body;
 pub mod scene;
 pub mod sun;
+pub mod orbit;
 
 pub struct SolarSystemPlugin;
 

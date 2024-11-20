@@ -1,9 +1,9 @@
-use crate::orbit::Orbit;
+use crate::solar_system::orbit::{KeplerElements, Orbit};
 use crate::solar_system::body::SiderialDay;
 use crate::solar_system::scene::manifest::{CameraConfig, MaterialSource, PlanetMaterial};
 use crate::solar_system::scene::{manifest, PlanetScenePlugin};
-use crate::solar_system::{body, sun, Mass};
-use crate::{orbit, solar_system, space};
+use crate::solar_system::{body, orbit, sun, Mass};
+use crate::{solar_system, space};
 use bevy::asset::io::{Reader, Writer};
 use bevy::asset::processor::LoadAndSave;
 use bevy::asset::saver::{AssetSaver, SavedAsset};
@@ -160,7 +160,7 @@ impl PlanetConfig {
             siderial_day,
             material: original_material,
             inclination,
-            orbit,
+            orbit: kepler_elements,
             satellites,
         } = manifest;
         let material = match &original_material {
@@ -176,7 +176,7 @@ impl PlanetConfig {
             original_material,
             material,
             inclination,
-            orbit,
+            orbit: kepler_elements.map(Into::into),
             satellites: satellites
                 .into_iter()
                 .map(|s| Self::load(s, loader))
@@ -248,7 +248,7 @@ fn load_planet_config_inner(
     let pos = config
         .orbit
         .as_ref()
-        .map(|orbit| orbit.point_on_orbit(config.mass, 0.0))
+        .map(|orbit| orbit.point_on_orbit(0.0))
         .unwrap_or(DVec3::ZERO);
     let (cell, local_pos) = frame.frame().translation_to_grid(pos);
     frame.with_frame_default(|planet| {
