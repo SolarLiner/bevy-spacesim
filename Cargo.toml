@@ -14,7 +14,7 @@ thiserror = "2.0.3"
 log = "0.4.22"
 
 [features]
-dev = ["bevy/asset_processor", "bevy/file_watcher"]
+dev = ["bevy/asset_processor", "bevy/bevy_dev_tools", "bevy/file_watcher"]
 
 [profile.dev]
 opt-level = 1

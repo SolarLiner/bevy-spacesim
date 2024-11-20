@@ -19,3 +19,11 @@ impl Plugin for SolarSystemPlugin {
 #[derive(Debug, Copy, Clone, Component, Deref, Reflect)]
 #[reflect(Component)]
 pub struct Mass(pub f64);
+
+fn show_planetary_bodies(mut g: Gizmos, q: Query<(Entity, &GlobalTransform, Option<&Name>), 
+    With<body::PlanetaryBody>>) {
+    for (entity, transform, name) in &q {
+        let name = name.map(|name| name.to_string()).unwrap_or_else(|| format!("Entity {entity}"));
+        g.axes(*transform, 4000e3);
+    }
+}

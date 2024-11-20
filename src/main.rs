@@ -1,15 +1,20 @@
 mod math;
 mod orbit;
+mod screen_space;
 mod solar_system;
 mod space;
 
+use crate::solar_system::body::PlanetaryBody;
 use crate::solar_system::{body, scene, sun};
 use bevy::asset::LoadState;
 use bevy::core_pipeline::bloom::BloomSettings;
+use bevy::ecs::system::SystemId;
 use bevy::math::DVec3;
 use bevy::prelude::*;
 use bevy::render::camera::Exposure;
 use bevy::scene::SceneInstance;
+use bevy::sprite::Anchor;
+use bevy::ui::extract_default_ui_camera_view;
 use bevy_editor_pls::controls;
 use bevy_editor_pls::controls::EditorControls;
 use bevy_editor_pls::editor::Editor;
@@ -17,40 +22,55 @@ use big_space::camera::CameraController;
 use big_space::{BigSpaceCommands, FloatingOrigin, GridCell, ReferenceFrame};
 
 fn main() {
-    App::new()
-        .add_plugins((
-            DefaultPlugins
-                .build()
-                .disable::<TransformPlugin>()
-                .set(AssetPlugin {
-                    mode: AssetMode::Processed,
-                    ..default()
-                }),
-            big_space::BigSpacePlugin::<space::Precision>::new(false),
-            big_space::debug::FloatingOriginDebugPlugin::<i64>::default(),
-            big_space::camera::CameraControllerPlugin::<space::Precision>::default(),
-            bevy_editor_pls::EditorPlugin::default(),
-        ))
-        .add_plugins((
-            solar_system::SolarSystemPlugin,
-            body::BodyPlugin,
-            orbit::OrbitPlugin,
-        ))
-        .insert_resource(ClearColor(Color::BLACK))
-        .insert_resource(AmbientLight {
-            color: Color::WHITE,
-            brightness: 200.0,
-        })
-        .insert_resource(editor_controls())
-        .insert_state(SimState::Loading)
-        .add_systems(OnEnter(SimState::Loading), load_scene)
-        .add_systems(Update, transition_state.run_if(scene_ready))
-        .add_systems(OnEnter(SimState::Running), (setup, camera_setup))
-        .add_systems(
-            PostUpdate,
-            (cursor_grab_system, update_sim_speed).run_if(in_state(SimState::Running)),
+    let mut app = App::new();
+    app.add_plugins((
+        DefaultPlugins
+            .build()
+            .disable::<TransformPlugin>()
+            .set(AssetPlugin {
+                mode: AssetMode::Processed,
+                ..default()
+            }),
+        big_space::BigSpacePlugin::<space::Precision>::new(false),
+        big_space::debug::FloatingOriginDebugPlugin::<i64>::default(),
+        big_space::camera::CameraControllerPlugin::<space::Precision>::default(),
+        bevy_editor_pls::EditorPlugin::default(),
+    ))
+    .add_plugins((
+        solar_system::SolarSystemPlugin,
+        body::BodyPlugin,
+        orbit::OrbitPlugin,
+        screen_space::ViewportPositionPlugin::<With<MainCamera>>::default(),
+    ))
+    .insert_resource(ClearColor(Color::BLACK))
+    .insert_resource(AmbientLight {
+        color: Color::WHITE,
+        brightness: 200.0,
+    })
+    .insert_resource(editor_controls())
+    .insert_state(SimState::Loading)
+    .add_systems(OnEnter(SimState::Loading), load_scene)
+    .add_systems(Update, transition_state.run_if(scene_ready))
+    .add_systems(
+        OnEnter(SimState::Running),
+        (setup_scene_camera, bigspace_camera_setup, setup_ui_camera),
+    )
+    .add_systems(
+        PostUpdate,
+        (
+            cursor_grab_system,
+            update_sim_speed,
+            display_planetary_bodies,
         )
-        .run();
+            .run_if(in_state(SimState::Running)),
+    )
+    .observe(add_planetary_body_text)
+    .observe(track_planetary_body_viewport);
+    #[cfg(feature = "dev")]
+    {
+        app.add_plugins(bevy::dev_tools::ui_debug_overlay::DebugUiPlugin);
+    }
+    app.run();
 }
 
 fn editor_controls() -> EditorControls {
@@ -72,6 +92,20 @@ fn editor_controls() -> EditorControls {
     editor_controls
 }
 
+#[derive(Debug, Copy, Clone, Default, Component, Reflect)]
+#[reflect(Component)]
+struct MainCamera;
+
+#[derive(Debug, Copy, Clone, Default, Component, Reflect)]
+#[reflect(Component)]
+struct UiCamera;
+
+#[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, States)]
+enum SimState {
+    Loading,
+    Running,
+}
+
 #[derive(Resource, Deref)]
 struct LoadingScene(Handle<DynamicScene>);
 
@@ -89,6 +123,12 @@ fn load_scene(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.insert_resource(LoadingScene(handle));
 }
 
+fn track_planetary_body_viewport(trigger: Trigger<OnAdd, PlanetaryBody>, mut commands: Commands) {
+    commands
+        .entity(trigger.entity())
+        .insert(screen_space::ViewportPosition::default());
+}
+
 fn transition_state(mut next_state: ResMut<NextState<SimState>>) {
     next_state.set(SimState::Running);
 }
@@ -104,13 +144,11 @@ fn scene_ready(
         && !q.is_empty()
 }
 
-#[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, States)]
-enum SimState {
-    Loading,
-    Running,
+fn setup_ui_camera(mut commands: Commands) {
+    // commands.spawn((Camera2dBundle::default(), IsDefaultUiCamera, UiCamera));
 }
 
-fn setup(
+fn setup_scene_camera(
     mut commands: Commands,
     q_sun: Query<(Entity, &GridCell<space::Precision>, &Transform), With<scene::CameraTarget>>,
 ) {
@@ -143,12 +181,13 @@ fn setup(
                             ..default()
                         },
                         BloomSettings::default(),
+                        MainCamera,
                     ));
                 });
         });
 }
 
-fn camera_setup(mut cam: ResMut<big_space::camera::CameraInput>) {
+fn bigspace_camera_setup(mut cam: ResMut<big_space::camera::CameraInput>) {
     cam.defaults_disabled = true;
 }
 
@@ -205,5 +244,90 @@ fn update_sim_speed(mut time: ResMut<Time<Virtual>>, key: Res<ButtonInput<KeyCod
     }
     if changed {
         info!("Relative speed: {}x", time.relative_speed(),);
+    }
+}
+
+#[derive(Debug, Copy, Clone, Component, Deref, DerefMut, Reflect)]
+#[reflect(Component)]
+struct BodyLabel(Entity);
+
+fn add_planetary_body_text(
+    trigger: Trigger<OnAdd, PlanetaryBody>,
+    mut ui_root: Local<Option<Entity>>,
+    mut commands: Commands,
+) {
+    let ui_root = *ui_root.get_or_insert_with(|| {
+        commands.spawn(NodeBundle {
+            style: Style {
+                position_type: PositionType::Absolute,
+                padding: UiRect::all(Val::Px(5.0)),
+                width: Val::Vw(100.0),
+                height: Val::Vh(100.0),
+                ..default()
+            },
+            z_index: ZIndex::Global(i32::MAX),
+            ..default()
+        })
+            .id()
+    });
+    let text_style = TextStyle { ..default() };
+    let id = commands
+        .spawn(Text2dBundle {
+            text: Text::from_sections(
+                ["Planet: ", ""].map(|s| TextSection::new(s, text_style.clone())),
+            ),
+            visibility: Visibility::Hidden,
+            text_anchor: Anchor::CenterLeft,
+            ..default()
+        })
+        .set_parent(ui_root)
+        .id();
+    commands.entity(trigger.entity()).insert(BodyLabel(id));
+}
+
+fn display_planetary_bodies(
+    mut display_system_id: Local<Option<SystemId<(Entity, String, Option<Vec2>)>>>,
+    // mut g: Gizmos,
+    mut commands: Commands,
+    q: Query<
+        (
+            Entity,
+            &screen_space::ViewportPosition,
+            Option<&BodyLabel>,
+            Option<&Name>,
+        ),
+        With<PlanetaryBody>,
+    >,
+) {
+    let display_system_id =
+        *display_system_id.get_or_insert_with(|| commands.register_one_shot_system(display_label));
+    for (entity, position, label, name) in &q {
+        let name = name
+            .map(|name| name.to_string())
+            .unwrap_or_else(|| format!("Entity {entity}"));
+        debug!("[display_planetary_bodies] {name:?} at {position:?}");
+        if let Some(label_entity) = label {
+            commands.run_system_with_input(
+                display_system_id,
+                (**label_entity, name, position.as_ref().copied()),
+            );
+        }
+    }
+}
+
+fn display_label(
+    In((entity, name, position)): In<(Entity, String, Option<Vec2>)>,
+    mut q: Query<(&mut Transform, &mut Text, &mut Visibility)>,
+) {
+    if let Ok((mut transform, mut text, mut visibility)) = q.get_mut(entity) {
+        if let Some(position) = position {
+            debug!("Display label for {name:?} at {position:?}");
+            transform.translation.x = position.x;
+            transform.translation.y = position.y;
+            text.sections[1].value = name;
+            *visibility = Visibility::Inherited;
+        } else {
+            *visibility = Visibility::Hidden;
+        }
     }
 }
