@@ -1,25 +1,40 @@
-use crate::math::{NewtonRaphson, RootEquation};
-use crate::solar_system::Mass;
-use crate::space;
 use bevy::math::{dvec2, dvec3, DMat3, DVec2, DVec3};
 use bevy::prelude::*;
-use big_space::{FloatingOrigin, GridCell, ReferenceFrame};
+use big_space::precision::GridPrecision;
+use big_space::{GridCell, ReferenceFrame};
+use root_eq::{NewtonRaphson, RootEquation};
 use serde::{Deserialize, Serialize};
 use std::f64::consts;
+use std::marker::PhantomData;
 
-pub struct OrbitPlugin;
+pub struct OrbitPlugin<Prec: GridPrecision> {
+    pub draw_orbits: bool,
+    __prec: PhantomData<Prec>,
+}
 
-impl Plugin for OrbitPlugin {
+impl<Prec: GridPrecision> Default for OrbitPlugin<Prec> {
+    fn default() -> Self {
+        Self {
+            draw_orbits: true,
+            __prec: PhantomData,
+        }
+    }
+}
+
+unsafe impl<Prec: GridPrecision> Send for OrbitPlugin<Prec> {}
+unsafe impl<Prec: GridPrecision> Sync for OrbitPlugin<Prec> {}
+
+impl<Prec: GridPrecision> Plugin for OrbitPlugin<Prec> {
     fn build(&self, app: &mut App) {
         app.register_type::<KeplerElements>()
-            .add_systems(Update, update_positions)
-            .add_systems(Last, draw_orbits);
+            .add_systems(Update, update_positions::<Prec>);
+        if self.draw_orbits {
+            app.add_systems(Last, draw_orbits);
+        }
     }
 }
 
 type Real = f64;
-
-const G: Real = 6.67430e-11;
 
 mod serialize_as_degrees {
     use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -122,7 +137,7 @@ impl Orbit {
 
     #[inline]
     fn true_anomaly(&self, eccentric_anomaly: Real) -> Real {
-        let a = (-(self.elements.eccentricity -1.0).recip()).sqrt();
+        let a = (-(self.elements.eccentricity - 1.0).recip()).sqrt();
         let b = (1.0 + self.elements.eccentricity).sqrt();
         let c = (eccentric_anomaly / 2.0).tan();
         2.0 * (a * b * c).atan()
@@ -135,7 +150,8 @@ impl Orbit {
 
     #[inline]
     fn get_rotation_matrix(&self) -> DMat3 {
-        DMat3::from_rotation_y(self.elements.longitude_of_ascending_node) * DMat3::from_rotation_x(self.elements.inclination)
+        DMat3::from_rotation_y(self.elements.longitude_of_ascending_node)
+            * DMat3::from_rotation_x(self.elements.inclination)
     }
 }
 
@@ -157,12 +173,12 @@ impl RootEquation for KeplerEquation {
     }
 }
 
-fn update_positions(
+fn update_positions<Prec: GridPrecision>(
     time: Res<Time<Virtual>>,
     mut q: Query<(
         &mut Transform,
-        &mut space::Grid,
-        &ReferenceFrame<space::Precision>,
+        &mut GridCell<Prec>,
+        &ReferenceFrame<Prec>,
         &Orbit,
     )>,
 ) {
@@ -175,7 +191,11 @@ fn update_positions(
     }
 }
 
-fn draw_orbits(mut g: Gizmos, q: Query<(&Parent, &KeplerElements)>, q_transform: Query<&GlobalTransform>) {
+fn draw_orbits(
+    mut g: Gizmos,
+    q: Query<(&Parent, &KeplerElements)>,
+    q_transform: Query<&GlobalTransform>,
+) {
     for (parent, orbit) in &mut q.iter() {
         let Ok(transform) = q_transform.get(**parent).map(|t| t.compute_transform()) else {
             continue;
@@ -197,7 +217,7 @@ fn draw_orbits(mut g: Gizmos, q: Query<(&Parent, &KeplerElements)>, q_transform:
 mod tests {
     use super::*;
     use approx::assert_abs_diff_eq;
-    
+
     fn orbit() -> Orbit {
         KeplerElements {
             epoch: 0.0,
@@ -207,7 +227,8 @@ mod tests {
             inclination: 0.0,
             longitude_of_ascending_node: 0.0,
             argument_of_periapsis: 0.0,
-        }.into()
+        }
+        .into()
     }
 
     #[test]

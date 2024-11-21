@@ -1,17 +1,12 @@
-use crate::solar_system::scene::MaterialSource;
-use crate::solar_system::Mass;
-use crate::space;
 use bevy::prelude::*;
 use big_space::{GridCell, ReferenceFrameCommands};
 use std::borrow::Cow;
-use std::f64::consts;
 
 pub struct BodyPlugin;
 
 impl Plugin for BodyPlugin {
     fn build(&self, app: &mut App) {
-        app.register_type::<PlanetaryBody>()
-            .register_type::<SiderialDay>();
+        app.register_type::<PlanetaryBody>();
     }
 }
 
@@ -21,27 +16,23 @@ pub struct PlanetaryBody;
 
 #[derive(Debug, Clone, Copy, Component, Reflect)]
 #[reflect(Component)]
-pub struct SiderialDay {
-    rot_speed: f32,
-}
+pub struct RotationSpeed(pub f32);
 
-impl SiderialDay {
-    pub fn new(length: f64) -> Self {
-        Self {
-            rot_speed: (consts::TAU / length) as _,
-        }
+impl RotationSpeed {
+    pub fn from_duration(length: f32) -> Self {
+        Self(std::f32::consts::TAU / length)
     }
 }
 
-pub fn spawn(
-    commands: &mut ReferenceFrameCommands<space::Precision>,
+#[allow(clippy::too_many_arguments)]
+pub fn spawn<Prec: big_space::precision::GridPrecision>(
+    commands: &mut ReferenceFrameCommands<Prec>,
     name: impl Into<Cow<'static, str>>,
     mesh: Handle<Mesh>,
-    original_material: MaterialSource,
     material: Handle<StandardMaterial>,
-    cell: GridCell<space::Precision>,
+    cell: GridCell<Prec>,
     local_pos: Vec3,
-    siderial_day: SiderialDay,
+    rotation_speed: RotationSpeed,
     radius: f32,
     inclination_deg: f32,
 ) -> Entity {
@@ -52,7 +43,7 @@ pub fn spawn(
     let name = name.into();
     commands.insert((
         PlanetaryBody,
-        siderial_day,
+        rotation_speed,
         Name::new(name.clone()),
         VisibilityBundle::default(),
     ));
@@ -60,7 +51,6 @@ pub fn spawn(
         .spawn_spatial((
             Name::new(format!("{} (Spatial)", name)),
             cell,
-            original_material,
             PbrBundle {
                 mesh,
                 material,
@@ -72,8 +62,11 @@ pub fn spawn(
         .id()
 }
 
-pub fn siderial_day_system(time: Res<Time<Virtual>>, mut q: Query<(&mut Transform, &SiderialDay)>) {
+pub fn siderial_day_system(
+    time: Res<Time<Virtual>>,
+    mut q: Query<(&mut Transform, &RotationSpeed)>,
+) {
     for (mut transform, day) in &mut q {
-        transform.rotate_local_y(time.delta_seconds() * day.rot_speed)
+        transform.rotate_local_y(time.delta_seconds() * day.0)
     }
 }

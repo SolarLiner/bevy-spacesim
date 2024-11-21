@@ -319,6 +319,7 @@ version = "0.14.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "043c9ad4b6fc4ca52d779873a8ca792a4e37842d07fce95363c9e17e36a1d8a0"
 dependencies = [
+ "bevy_dylib",
  "bevy_internal",
 ]
 
@@ -378,6 +379,7 @@ dependencies = [
  "num-traits",
  "serde",
  "serde_yaml",
+ "solar_system",
  "thiserror 2.0.3",
 ]
 
@@ -613,6 +615,15 @@ dependencies = [
  "bevy_utils",
  "const-fnv1a-hash",
  "sysinfo",
+]
+
+[[package]]
+name = "bevy_dylib"
+version = "0.14.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0c399292fac67682a72666e78872626f3c1c39b34c430b6f02c81d21da91b500"
+dependencies = [
+ "bevy_internal",
 ]
 
 [[package]]
@@ -1311,6 +1322,8 @@ dependencies = [
 [[package]]
 name = "big_space"
 version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1ca3d5220af341ec2d80fc282cae68c25af80faab7482e7fd7cf75a325df1032"
 dependencies = [
  "bevy_app",
  "bevy_color",
@@ -3952,6 +3965,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "root-eq"
+version = "0.1.0"
+dependencies = [
+ "num-traits",
+]
+
+[[package]]
 name = "rustc-hash"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4058,6 +4078,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde_spanned"
+version = "0.6.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "87607cb1398ed59d48732e575a4c28a7a8ebf2454b964fe3f224f2afc07909e1"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "serde_yaml"
 version = "0.9.34+deprecated"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4150,6 +4179,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dd538fb6910ac1099850255cf94a94df6551fbdd602454387d0adb2d1ca6dead"
 dependencies = [
  "serde",
+]
+
+[[package]]
+name = "solar_system"
+version = "0.1.0"
+dependencies = [
+ "approx",
+ "bevy",
+ "big_space",
+ "root-eq",
+ "serde",
+ "thiserror 2.0.3",
+ "toml",
 ]
 
 [[package]]
@@ -4366,10 +4408,25 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 
 [[package]]
+name = "toml"
+version = "0.8.19"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a1ed1f98e3fdc28d6d910e6737ae6ab1a93bf1985935a1193e68f93eeb68d24e"
+dependencies = [
+ "serde",
+ "serde_spanned",
+ "toml_datetime",
+ "toml_edit",
+]
+
+[[package]]
 name = "toml_datetime"
 version = "0.6.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0dd7358ecb8fc2f8d014bf86f6f638ce72ba252a2c3a2572f2a795f1d23efb41"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "toml_edit"
@@ -4378,6 +4435,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4ae48d6208a266e853d946088ed816055e556cc6028c5e8e2b84d9fa5dd7c7f5"
 dependencies = [
  "indexmap",
+ "serde",
+ "serde_spanned",
  "toml_datetime",
  "winnow",
 ]

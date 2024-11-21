@@ -1,0 +1,47 @@
+[camera]
+target = "Earth"
+translation = [6_601_000, 0, 0]
+rotation = [0, 0, 0]
+
+[root]
+name = "Sun"
+mass = 1.989e+30
+radius = 696_340_000
+siderial-day = 36_000
+inclination = 0
+
+[[root.satellites]]
+
+[Earth]
+mass = 5.972e+24
+radius = 6_371_000
+siderial-day = 86_164.09054
+inclination = 0
+
+[Earth.material]
+color = [0.2, 0.5, 1]
+
+[Earth.orbit]
+semi-major-axis = 149_600_000_000
+eccentricity = 0.0167
+inclination = 0
+longitude-of-ascending-node = -11.26
+argument-of-periapsis = 114.207
+
+[[Earth.satellites]]
+[Moon]
+period = 27.321_661
+mass = 7.342e+22
+radius = 1_737_100
+siderial-day = 2_360_591.5
+inclination = 5.1
+
+[Moon.material]
+color = [0.5, 0.5, 0.5]
+
+[Moon.orbit]
+semi-major-axis = 384_400_000
+eccentricity = 0.0549
+inclination = 5.1
+longitude-of-ascending-node = 125.08
+argument-of-periapsis = 318.15

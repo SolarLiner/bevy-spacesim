@@ -1,0 +1,15 @@
+[package]
+name = "solar_system"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+root-eq = { path = "../root-eq" }
+bevy.workspace = true
+big_space.workspace = true
+serde = { workspace = true, features = ["derive"] }
+toml = "0.8.19"
+thiserror = "2.0.3"
+
+[dev-dependencies]
+approx = "0.5.1"

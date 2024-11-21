@@ -1,7 +1,5 @@
-use crate::space;
 use bevy::pbr::CascadeShadowConfigBuilder;
 use bevy::prelude::*;
-use big_space::{BigSpaceCommands, ReferenceFrame};
 
 pub struct SunPlugin;
 
@@ -9,15 +7,15 @@ impl Plugin for SunPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<Sun>()
             .register_type::<Sunlight>()
-        .add_systems(Startup, setup_sunlight)
-        .add_systems(
-            Update,
-            sun_lighting
-                .in_set(TransformSystem::TransformPropagate)
-                .after(bevy::transform::systems::sync_simple_transforms)
-                .after(bevy::transform::systems::propagate_transforms)
-                .after(big_space::FloatingOriginSet::PropagateLowPrecision),
-        );
+            .add_systems(Startup, setup_sunlight)
+            .add_systems(
+                Update,
+                sun_lighting
+                    .in_set(TransformSystem::TransformPropagate)
+                    .after(bevy::transform::systems::sync_simple_transforms)
+                    .after(bevy::transform::systems::propagate_transforms)
+                    .after(big_space::FloatingOriginSet::PropagateLowPrecision),
+            );
     }
 }
 
