@@ -21,6 +21,7 @@ impl<Prec: GridPrecision> PluginGroup for SolarSystemPlugin<Prec> {
         PluginGroupBuilder::start::<Self>()
             .add(body::BodyPlugin)
             .add(orbit::OrbitPlugin::<Prec>::default())
+            .add(sun::SunPlugin)
             .add(scene::PlanetScenePlugin::<Prec>::default())
     }
 }

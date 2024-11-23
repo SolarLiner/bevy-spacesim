@@ -6,7 +6,8 @@ pub struct BodyPlugin;
 
 impl Plugin for BodyPlugin {
     fn build(&self, app: &mut App) {
-        app.register_type::<PlanetaryBody>();
+        app.register_type::<PlanetaryBody>()
+            .register_type::<RotationSpeed>();
     }
 }
 
@@ -30,16 +31,10 @@ pub fn spawn<Prec: big_space::precision::GridPrecision>(
     name: impl Into<Cow<'static, str>>,
     mesh: Handle<Mesh>,
     material: Handle<StandardMaterial>,
-    cell: GridCell<Prec>,
-    local_pos: Vec3,
     rotation_speed: RotationSpeed,
     radius: f32,
     inclination_deg: f32,
 ) -> Entity {
-    let transform = Transform::from_rotation(Quat::from_rotation_x(inclination_deg.to_radians()))
-        .with_scale(Vec3::splat(radius))
-        .with_translation(local_pos);
-    let global_transform = GlobalTransform::from(transform);
     let name = name.into();
     commands.insert((
         PlanetaryBody,
@@ -50,19 +45,19 @@ pub fn spawn<Prec: big_space::precision::GridPrecision>(
     commands
         .spawn_spatial((
             Name::new(format!("{} (Spatial)", name)),
-            cell,
+            GridCell::<Prec>::default(),
             PbrBundle {
                 mesh,
                 material,
-                transform,
-                global_transform,
+                transform: Transform::from_scale(Vec3::splat(radius))
+                    .with_rotation(Quat::from_rotation_x(inclination_deg.to_radians())),
                 ..Default::default()
             },
         ))
         .id()
 }
 
-pub fn siderial_day_system(
+pub fn rotation_speed_system(
     time: Res<Time<Virtual>>,
     mut q: Query<(&mut Transform, &RotationSpeed)>,
 ) {

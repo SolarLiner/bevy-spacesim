@@ -1,0 +1,9 @@
+[package]
+name = "pan_orbit"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bevy.workspace = true
+big_space.workspace = true
+bevy_egui = "0.30.1"

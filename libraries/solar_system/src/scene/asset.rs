@@ -1,15 +1,20 @@
 use crate::body::RotationSpeed;
 use crate::orbit::Orbit;
+use crate::scene::components::SceneCamera;
 use crate::scene::manifest::{CameraConfig, PlanetMaterial};
-use crate::scene::{error, manifest};
-use crate::{body, sun};
+use crate::scene::{components, error, manifest};
+use crate::{body, orbit, sun};
 use bevy::asset::io::Reader;
 use bevy::asset::{AssetLoader, AsyncReadExt, LoadContext};
+use bevy::core_pipeline::bloom::BloomSettings;
 use bevy::math::DVec3;
 use bevy::prelude::*;
 use bevy::utils::ConditionalSendFuture;
 use big_space::precision::GridPrecision;
-use big_space::{BigSpaceCommands, GridCell, ReferenceFrame, ReferenceFrameCommands};
+use big_space::{
+    BigReferenceFrameBundle, BigSpaceCommands, BigSpatialBundle, FloatingOrigin, GridCell,
+    ReferenceFrame, ReferenceFrameCommands,
+};
 use serde::{Deserialize, Serialize};
 use std::marker::PhantomData;
 
@@ -17,8 +22,8 @@ pub struct SolarSystemLoader<Prec: GridPrecision>(PhantomData<Prec>);
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SolarSystemLoaderSettings {
-    cell_length: f32,
-    switching_threshold: f32,
+    pub cell_length: f32,
+    pub switching_threshold: f32,
 }
 
 impl Default for SolarSystemLoaderSettings {
@@ -53,11 +58,12 @@ impl<Prec: GridPrecision> AssetLoader for SolarSystemLoader<Prec> {
                 reader.read_to_string(&mut buf).await?;
                 buf
             };
-            let manifest = toml::from_str::<manifest::SolarSystem>(&input)?;
+            let manifest = serde_yaml::from_str::<manifest::SolarSystem>(&input)?;
             let mut world = World::default();
 
-            let root = Planet::from_manifest(load_context, manifest.root.name, manifest.root.planet);
-            load_planet_config::<Prec>(&mut world, &root, settings);
+            let root =
+                Planet::from_manifest(load_context, manifest.root.name, manifest.root.planet);
+            load_planet_config::<Prec>(&mut world, load_context, &root, settings);
             setup_camera::<Prec>(&mut world, &manifest.camera)?;
 
             load_context.add_labeled_asset("Scene".to_string(), Scene::new(world));
@@ -69,7 +75,7 @@ impl<Prec: GridPrecision> AssetLoader for SolarSystemLoader<Prec> {
     }
 
     fn extensions(&self) -> &[&str] {
-        &["system.toml"]
+        &["system.yaml"]
     }
 }
 
@@ -92,7 +98,7 @@ impl Planet {
     ) -> Self {
         Self {
             name: name.clone(),
-            radius: manifest.radius,
+            radius: manifest.radius.as_base_value() as _,
             inclination: manifest.inclination,
             material: match manifest.material {
                 manifest::MaterialSource::Inline(material) => load_context
@@ -100,8 +106,11 @@ impl Planet {
                         create_planet_material(&material)
                     }),
             },
-            rotation_speed: RotationSpeed::from_duration(manifest.siderial_day as f32),
-            orbit: manifest.orbit.map(Orbit::from),
+            rotation_speed: RotationSpeed::from_duration(manifest.siderial_day.as_seconds() as f32),
+            orbit: manifest
+                .orbit
+                .map(Into::into)
+                .map(From::<orbit::KeplerElements>::from),
             satellites: manifest
                 .satellites
                 .into_iter()
@@ -119,25 +128,26 @@ pub struct SolarSystem {
 
 fn load_planet_config<Prec: GridPrecision>(
     world: &mut World,
+    load_context: &mut LoadContext,
     root: &Planet,
     settings: &SolarSystemLoaderSettings,
 ) {
-    let StaticAssets { sphere } = StaticAssets::from_world(world);
-    world.resource_scope::<AssetServer, _>(|world, asset_server| {
-        let mut commands = world.commands();
-        commands.spawn_big_space(
-            ReferenceFrame::<Prec>::new(settings.cell_length, settings.switching_threshold),
-            |root_frame| {
-                root_frame.insert((GridCell::<Prec>::default(), TransformBundle::default()));
-                load_planet_config_inner(&asset_server, &sphere, root_frame, root, true);
-            },
-        );
-    });
+    let sphere = load_context.add_labeled_asset(
+        "Sphere".to_string(),
+        Sphere::new(1.0).mesh().ico(64).unwrap(),
+    );
+    let mut commands = world.commands();
+    commands.spawn_big_space(
+        ReferenceFrame::<Prec>::new(settings.cell_length, settings.switching_threshold),
+        |root_frame| {
+            root_frame.insert((Name::new("Root Frame"), components::SceneRoot));
+            load_planet_config_inner(&sphere, root_frame, root, true);
+        },
+    );
     world.flush();
 }
 
 fn load_planet_config_inner<Prec: GridPrecision>(
-    asset_server: &AssetServer,
     mesh: &Handle<Mesh>,
     frame: &mut ReferenceFrameCommands<Prec>,
     config: &Planet,
@@ -153,6 +163,8 @@ fn load_planet_config_inner<Prec: GridPrecision>(
         planet.insert((
             Name::new(format!("{} (Planet Frame)", config.name)),
             VisibilityBundle::default(),
+            TransformBundle::from_transform(Transform::from_translation(local_pos)),
+            cell,
         ));
         planet.with_frame_default(|rot| {
             body::spawn(
@@ -160,8 +172,6 @@ fn load_planet_config_inner<Prec: GridPrecision>(
                 config.name.clone(),
                 mesh.clone(),
                 config.material.clone(),
-                cell,
-                local_pos,
                 config.rotation_speed,
                 config.radius,
                 config.inclination,
@@ -176,7 +186,7 @@ fn load_planet_config_inner<Prec: GridPrecision>(
         }
 
         for satellite in &config.satellites {
-            load_planet_config_inner(asset_server, mesh, planet, satellite, false);
+            load_planet_config_inner(mesh, planet, satellite, false);
         }
     });
 }
@@ -198,14 +208,27 @@ fn setup_camera<Prec: GridPrecision>(
         })
         .ok_or(CameraTargetNotFound(config.target.clone()))?;
     debug!("Found entity {entity} for target {}", config.target);
-    let (cell, local_pos) = frame.translation_to_grid(config.translation);
-    world.entity_mut(entity).insert((
-        cell,
-        Camera3dBundle {
-            transform: Transform::from_translation(local_pos),
-            ..default()
-        },
+    let (cell, local_pos) = frame.translation_to_grid(DVec3::from_array(
+        config.translation.map(|p| p.as_base_value()),
     ));
+    debug!("{cell:?}");
+    debug!("{local_pos:?}");
+    world.entity_mut(entity).with_children(|children| {
+        children.spawn((
+            BigReferenceFrameBundle::<Prec> {
+                transform: Transform::from_translation(local_pos).with_rotation(Quat::from_euler(
+                    EulerRot::XZY,
+                    config.rotation.x.to_radians(),
+                    config.rotation.z.to_radians(),
+                    config.rotation.y.to_radians(),
+                )),
+                cell,
+                ..default()
+            },
+            SceneCamera,
+            FloatingOrigin,
+        ));
+    });
     Ok(())
 }
 
@@ -214,21 +237,7 @@ pub fn create_planet_material(material: &PlanetMaterial) -> StandardMaterial {
 
     StandardMaterial {
         base_color: base_color.into(),
-        emissive: base_color * material.emissive_power,
+        emissive: base_color * material.emissive_power.as_base_value() as f32,
         ..Default::default()
-    }
-}
-
-#[derive(Resource)]
-pub struct StaticAssets {
-    sphere: Handle<Mesh>,
-}
-
-impl FromWorld for StaticAssets {
-    fn from_world(world: &mut World) -> Self {
-        let sphere = world
-            .resource_mut::<Assets<Mesh>>()
-            .add(Sphere::new(1.0).mesh().ico(16).unwrap());
-        Self { sphere }
     }
 }

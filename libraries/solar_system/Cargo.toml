@@ -8,7 +8,7 @@ root-eq = { path = "../root-eq" }
 bevy.workspace = true
 big_space.workspace = true
 serde = { workspace = true, features = ["derive"] }
-toml = "0.8.19"
+serde_yaml = "0.9.33"
 thiserror = "2.0.3"
 
 [dev-dependencies]

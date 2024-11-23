@@ -21,15 +21,16 @@ impl<Prec: GridPrecision> Default for OrbitPlugin<Prec> {
     }
 }
 
-unsafe impl<Prec: GridPrecision> Send for OrbitPlugin<Prec> {}
-unsafe impl<Prec: GridPrecision> Sync for OrbitPlugin<Prec> {}
-
 impl<Prec: GridPrecision> Plugin for OrbitPlugin<Prec> {
     fn build(&self, app: &mut App) {
         app.register_type::<KeplerElements>()
+            .register_type::<Orbit>()
             .add_systems(Update, update_positions::<Prec>);
         if self.draw_orbits {
-            app.add_systems(Last, draw_orbits);
+            app.add_systems(
+                PostUpdate,
+                draw_orbits.after(TransformSystem::TransformPropagate),
+            );
         }
     }
 }
@@ -191,22 +192,18 @@ fn update_positions<Prec: GridPrecision>(
     }
 }
 
-fn draw_orbits(
-    mut g: Gizmos,
-    q: Query<(&Parent, &KeplerElements)>,
-    q_transform: Query<&GlobalTransform>,
-) {
-    for (parent, orbit) in &mut q.iter() {
+fn draw_orbits(mut g: Gizmos, q: Query<(&Parent, &Orbit)>, q_transform: Query<&GlobalTransform>) {
+    for (parent, Orbit { elements, .. }) in &mut q.iter() {
         let Ok(transform) = q_transform.get(**parent).map(|t| t.compute_transform()) else {
             continue;
         };
         let position = transform.translation;
         let rotation = transform.rotation
-            * Quat::from_rotation_y(orbit.longitude_of_ascending_node as _)
-            * Quat::from_rotation_x((consts::FRAC_PI_2 + orbit.inclination) as f32);
+            * Quat::from_rotation_y(elements.longitude_of_ascending_node as _)
+            * Quat::from_rotation_x((consts::FRAC_PI_2 + elements.inclination) as f32);
         let half_size = Vec2::new(
-            orbit.semi_major_axis as f32,
-            (orbit.semi_major_axis * (1.0 - orbit.eccentricity.powi(2)).sqrt()) as f32,
+            elements.semi_major_axis as f32,
+            (elements.semi_major_axis * (1.0 - elements.eccentricity.powi(2)).sqrt()) as f32,
         );
         g.ellipse(position, rotation, half_size, Color::srgb(1.0, 1.0, 0.0))
             .resolution(64);
