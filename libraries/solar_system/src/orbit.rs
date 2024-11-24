@@ -33,9 +33,7 @@ impl<Prec: GridPrecision> Plugin for OrbitPlugin<Prec> {
             )
             .add_systems(
                 PostUpdate,
-                draw_orbits
-                    .after(TransformSystem::TransformPropagate)
-                    .run_if(should_draw_orbits),
+                draw_orbits.after(TransformSystem::TransformPropagate),
             );
         if self.draw_orbits {
             app.add_systems(
@@ -46,7 +44,7 @@ impl<Prec: GridPrecision> Plugin for OrbitPlugin<Prec> {
     }
 }
 
-#[derive(Resource, Deref, DerefMut)]
+#[derive(Resource, Deref, DerefMut, Debug)]
 pub struct DrawOrbits(bool);
 
 type Real = f64;
@@ -213,11 +211,15 @@ fn update_positions<Prec: GridPrecision>(
     }
 }
 
-fn should_draw_orbits(draw_orbits: Res<DrawOrbits>) -> bool {
-    **draw_orbits
-}
-
-fn draw_orbits(mut g: Gizmos, q: Query<(&Parent, &Orbit)>, q_transform: Query<&GlobalTransform>) {
+fn draw_orbits(
+    mut g: Gizmos,
+    q: Query<(&Parent, &Orbit)>,
+    q_transform: Query<&GlobalTransform>,
+    draw_orbits: Res<DrawOrbits>,
+) {
+    if !**draw_orbits {
+        return;
+    }
     for (parent, Orbit { elements, .. }) in &mut q.iter() {
         let Ok(transform) = q_transform.get(**parent).map(|t| t.compute_transform()) else {
             continue;
