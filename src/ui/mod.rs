@@ -110,7 +110,7 @@ impl<'w, 's> UiSystems<'w, 's> {
                 .add(
                     widgets::DragValue::new(&mut cur_speed)
                         .suffix("x")
-                        .range(0.1..=200.0),
+                        .range(0.1..=1000.0),
                 )
                 .changed()
             {
