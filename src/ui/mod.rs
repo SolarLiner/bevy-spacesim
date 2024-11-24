@@ -62,11 +62,12 @@ fn ui(mut this: UiSystems, mut q_egui: Query<&mut EguiContext, With<PrimaryWindo
     };
 
     let ctx = egui.get_mut();
-    ctx.style_mut(|style| {
-        style.spacing.item_spacing = egui::vec2(6.0, 4.0);
-    });
     let rect = egui::TopBottomPanel::new(TopBottomSide::Top, "toolbar")
-        .frame(egui::Frame::none().fill(egui::Color32::from_black_alpha(64)))
+        .frame(
+            egui::Frame::none()
+                .fill(egui::Color32::from_black_alpha(64))
+                .inner_margin(egui::vec2(6.0, 4.0)),
+        )
         .show(ctx, |ui| {
             this.topbar_ui(ui);
         })
@@ -85,7 +86,6 @@ impl<'w, 's> UiSystems<'w, 's> {
         ui.horizontal(|ui| {
             self.parent_selector(ui);
             ui.with_layout(egui::Layout::right_to_left(Align::Max), |ui| {
-                ui.add_space(4.0);
                 if self.state.topbar_expanded {
                     self.fps_display_history(ui);
                 } else {
