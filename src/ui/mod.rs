@@ -11,11 +11,13 @@ use bevy_blur_regions::{BlurRegionsCamera, BlurRegionsPlugin, EguiWindowBlurExt}
 use bevy_egui::{EguiContext, EguiPlugin};
 use chrono::{DateTime, Datelike, Days, Months, TimeDelta, Timelike, Utc};
 use egui::panel::TopBottomSide;
-use egui::{containers, emath, widgets, Align, TextBuffer, Ui};
+use egui::{containers, emath, widgets, Align, FontId, Frame, TextBuffer, Ui};
 use egui_plot::{PlotPoint, PlotPoints};
+use solar_system::body::PlanetaryBody;
 use solar_system::mjd::Mjd;
 use solar_system::orbit::DrawOrbits;
 use solar_system::scene::components::SceneCamera;
+use solar_system::scene::si_prefix::SiPrefixed;
 use std::ops;
 use std::ops::Deref;
 
@@ -59,6 +61,10 @@ struct UiSystems<'w, 's> {
     q_camera_blur: Query<'w, 's, &'static mut BlurRegionsCamera<20>>,
     q_camera_entity: Query<'w, 's, Entity, With<SceneCamera>>,
     q_camera_parent: Query<'w, 's, &'static Parent, With<SceneCamera>>,
+    q_camera_transform:
+        Query<'w, 's, (&'static GlobalTransform, &'static Camera), With<SceneCamera>>,
+    q_planetary_bodies:
+        Query<'w, 's, (&'static GlobalTransform, Option<&'static Name>), With<PlanetaryBody>>,
     commands: Commands<'w, 's>,
 }
 
@@ -75,6 +81,7 @@ impl<'w, 's> UiSystems<'w, 's> {
     fn toplevel(&mut self, ctx: &egui::Context) {
         self.topbar(ctx);
         self.date_time_window(ctx);
+        self.bodies_on_screen(ctx);
     }
     fn topbar(&mut self, ctx: &egui::Context) {
         let rect = egui::TopBottomPanel::new(TopBottomSide::Top, "toolbar")
@@ -253,6 +260,45 @@ impl<'w, 's> UiSystems<'w, 's> {
                 });
             });
         self.state.date_window_opened = open;
+    }
+
+    fn bodies_on_screen(&mut self, ctx: &egui::Context) {
+        const CIRCLE_SIZE: f32 = 5.0;
+        const TEXT_POS: f32 = CIRCLE_SIZE + 3.0;
+
+        containers::CentralPanel::default()
+            .frame(Frame::none())
+            .show(ctx, |ui| {
+                let Ok((cam_transform, camera)) = self.q_camera_transform.get_single() else {
+                    return;
+                };
+
+                let painter = ui.painter();
+                for (planet_transform, name) in &self.q_planetary_bodies {
+                    let distance = planet_transform
+                        .translation()
+                        .distance(cam_transform.translation());
+                    let distance = SiPrefixed::from_base_value(distance as f64);
+                    let name = name
+                        .map(|name| name.to_string())
+                        .unwrap_or_else(|| "Unknown body".to_string());
+                    let Some(viewport) =
+                        camera.world_to_viewport(cam_transform, planet_transform.translation())
+                    else {
+                        continue;
+                    };
+                    let text = format!("{name}\n{distance:.1}m");
+                    let center = egui::pos2(viewport.x, viewport.y);
+                    painter.circle_filled(center, CIRCLE_SIZE, egui::Color32::WHITE);
+                    painter.text(
+                        center + egui::vec2(TEXT_POS, TEXT_POS),
+                        egui::Align2::LEFT_BOTTOM,
+                        text,
+                        FontId::proportional(11.0),
+                        egui::Color32::WHITE,
+                    );
+                }
+            });
     }
 
     fn get_planets(&self) -> impl Iterator<Item = (Entity, &str)> {

@@ -12,7 +12,7 @@ pub mod components;
 mod duration;
 mod error;
 mod manifest;
-mod si_prefix;
+pub mod si_prefix;
 
 pub use asset::SolarSystemLoaderSettings;
 pub use manifest::CameraConfig;

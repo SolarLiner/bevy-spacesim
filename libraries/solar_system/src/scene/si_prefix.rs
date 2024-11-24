@@ -1,9 +1,9 @@
+use bevy::prelude::Reflect;
 use serde::de::{EnumAccess, Error, MapAccess, SeqAccess};
 use serde::{Deserializer, Serializer};
 use std::fmt;
-use std::fmt::Formatter;
+use std::fmt::{Formatter, Write};
 use std::str::FromStr;
-use bevy::prelude::Reflect;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Reflect)]
 pub enum SiPrefix {
@@ -38,6 +38,29 @@ impl FromStr for SiPrefix {
 }
 
 impl SiPrefix {
+    pub const ALL: [Self; 20] = [
+        SiPrefix::Yotta,
+        SiPrefix::Zetta,
+        SiPrefix::Exa,
+        SiPrefix::Peta,
+        SiPrefix::Tera,
+        SiPrefix::Giga,
+        SiPrefix::Mega,
+        SiPrefix::Kilo,
+        SiPrefix::Hecto,
+        SiPrefix::Deca,
+        SiPrefix::Deci,
+        SiPrefix::Centi,
+        SiPrefix::Milli,
+        SiPrefix::Micro,
+        SiPrefix::Nano,
+        SiPrefix::Pico,
+        SiPrefix::Femto,
+        SiPrefix::Atto,
+        SiPrefix::Zepto,
+        SiPrefix::Yocto,
+    ];
+
     pub const fn from_char(c: char) -> Option<Self> {
         match c {
             'Y' => Some(SiPrefix::Yotta),
@@ -198,10 +221,12 @@ impl FromStr for SiPrefixed {
 
 impl fmt::Display for SiPrefixed {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self.prefix {
-            Some(prefix) => write!(f, "{}{}", self.value, prefix.as_char()),
-            None => write!(f, "{}", self.value),
+        <_ as fmt::Display>::fmt(&self.value, f)?;
+        if let Some(prefix) = self.prefix {
+            f.write_char(' ')?;
+            f.write_char(prefix.as_char())?;
         }
+        Ok(())
     }
 }
 
@@ -210,7 +235,30 @@ impl SiPrefixed {
         value: 0.0,
         prefix: None,
     };
-    
+
+    pub fn from_base_value(value: f64) -> Self {
+        let mag = value.abs();
+        if (1.0..1000.0).contains(&mag) {
+            return Self {
+                value,
+                prefix: None,
+            };
+        }
+
+        for prefix in SiPrefix::ALL {
+            if mag > prefix.factor() {
+                return Self {
+                    value: value / prefix.factor(),
+                    prefix: Some(prefix),
+                };
+            }
+        }
+        Self {
+            value,
+            prefix: None,
+        }
+    }
+
     pub fn as_base_value(&self) -> f64 {
         self.value * self.prefix.map(|p| p.factor()).unwrap_or(1.0)
     }
