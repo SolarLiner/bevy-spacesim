@@ -3,8 +3,9 @@ use serde::{Deserializer, Serializer};
 use std::fmt;
 use std::fmt::Formatter;
 use std::str::FromStr;
+use bevy::prelude::Reflect;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Reflect)]
 pub enum SiPrefix {
     Yotta,
     Zetta,
@@ -113,7 +114,7 @@ impl SiPrefix {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Reflect)]
 pub struct SiPrefixed {
     pub value: f64,
     pub prefix: Option<SiPrefix>,

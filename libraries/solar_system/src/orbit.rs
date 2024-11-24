@@ -25,7 +25,14 @@ impl<Prec: GridPrecision> Plugin for OrbitPlugin<Prec> {
     fn build(&self, app: &mut App) {
         app.register_type::<KeplerElements>()
             .register_type::<Orbit>()
-            .add_systems(Update, update_positions::<Prec>);
+            .insert_resource(DrawOrbits(self.draw_orbits))
+            .add_systems(Update, update_positions::<Prec>)
+            .add_systems(
+                PostUpdate,
+                draw_orbits
+                    .after(TransformSystem::TransformPropagate)
+                    .run_if(should_draw_orbits),
+            );
         if self.draw_orbits {
             app.add_systems(
                 PostUpdate,
@@ -34,6 +41,9 @@ impl<Prec: GridPrecision> Plugin for OrbitPlugin<Prec> {
         }
     }
 }
+
+#[derive(Resource, Deref, DerefMut)]
+pub struct DrawOrbits(bool);
 
 type Real = f64;
 
@@ -190,6 +200,10 @@ fn update_positions<Prec: GridPrecision>(
         *grid = new_grid;
         transform.translation = pos;
     }
+}
+
+fn should_draw_orbits(draw_orbits: Res<DrawOrbits>) -> bool {
+    **draw_orbits
 }
 
 fn draw_orbits(mut g: Gizmos, q: Query<(&Parent, &Orbit)>, q_transform: Query<&GlobalTransform>) {

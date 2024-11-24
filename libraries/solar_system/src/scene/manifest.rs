@@ -72,12 +72,14 @@ pub struct RootPlanet {
     pub planet: Planet,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, Component, Reflect)]
+#[reflect(Component)]
 #[serde(rename_all = "kebab-case")]
 pub struct CameraConfig {
     pub target: String,
-    pub translation: [SiPrefixed; 3],
-    pub rotation: Vec3,
+    pub radius: SiPrefixed,
+    #[serde(default)]
+    pub rotation: [f32; 2],
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, Asset, TypePath)]

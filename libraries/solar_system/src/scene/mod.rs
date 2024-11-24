@@ -14,7 +14,6 @@ mod error;
 mod manifest;
 mod si_prefix;
 
-use crate::scene::components::SceneCamera;
 pub use asset::SolarSystemLoaderSettings;
 pub use manifest::CameraConfig;
 
@@ -32,6 +31,7 @@ impl<Prec: GridPrecision> Plugin for PlanetScenePlugin<Prec> {
             .init_asset_loader::<asset::SolarSystemLoader<Prec>>()
             .register_type::<components::SceneRoot>()
             .register_type::<components::SceneCamera>()
+            .register_type::<manifest::CameraConfig>()
             .observe(on_scene_root_added::<Prec>);
     }
 }

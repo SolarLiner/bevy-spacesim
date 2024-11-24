@@ -1,7 +1,6 @@
 camera:
   target: Earth
-  translation: [ 6770k, 0.0, 0.0 ]
-  rotation: [ 0.0, 0.0, 0.0 ]
+  radius: 6770k
 root:
   name: Sun
   siderial-day: 24.47d

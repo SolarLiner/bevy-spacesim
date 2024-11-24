@@ -3,6 +3,7 @@ members = ["libraries/*"]
 
 [workspace.dependencies]
 bevy = "0.14.2"
+bevy_egui = "0.30.1"
 big_space = "0.7.0"
 serde = "1.0.215"
 
@@ -16,8 +17,11 @@ solar_system = { path = "libraries/solar_system" }
 pan_orbit = { path = "libraries/pan_orbit" }
 
 bevy = { version = "0.14.2", features = ["serialize"] }
+bevy_egui.workspace = true
 bevy-inspector-egui = "0.27.0"
 big_space.workspace = true
+egui = "0.29.1"
+egui_plot = "0.29.0"
 
 [features]
 dev = ["bevy/dynamic_linking", "bevy/bevy_dev_tools", "bevy/file_watcher"]

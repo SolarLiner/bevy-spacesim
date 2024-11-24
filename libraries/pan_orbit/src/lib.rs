@@ -22,7 +22,10 @@ impl<Prec: GridPrecision> Plugin for PanOrbitCameraPlugin<Prec> {
                 Update,
                 systems::get_blocked_inputs
                     .pipe(systems::pan_orbit_camera::<Prec>)
-                    .run_if(any_with_component::<components::PanOrbitState>),
+                    .run_if(
+                        any_with_component::<components::PanOrbitState>
+                            .and_then(resource_exists::<bevy_egui::EguiUserTextures>),
+                    ),
             );
     }
 }

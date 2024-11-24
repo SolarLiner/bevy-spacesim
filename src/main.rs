@@ -1,12 +1,16 @@
+mod ui;
+
 use bevy::core_pipeline::bloom::{BloomPrefilterSettings, BloomSettings};
+use bevy::ecs::system::EntityCommand;
 use bevy::prelude::*;
 use bevy::render::camera::Exposure;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_inspector_egui::DefaultInspectorConfigPlugin;
+use big_space::FloatingOrigin;
 use pan_orbit::components::{PanOrbitCameraBundle, PanOrbitState};
 use pan_orbit::PanOrbitCameraPlugin;
 use solar_system::scene::components::SceneCamera;
-use solar_system::scene::{SolarSystemLoaderSettings, SolarSystemSceneBundle};
+use solar_system::scene::{CameraConfig, SolarSystemLoaderSettings, SolarSystemSceneBundle};
 
 type Precision = i32;
 
@@ -15,12 +19,14 @@ fn main() {
         .add_plugins((
             DefaultPlugins.build().disable::<TransformPlugin>(),
             big_space::BigSpacePlugin::<Precision>::new(false),
-            // big_space::debug::FloatingOriginDebugPlugin::<Precision>::default(),
             DefaultInspectorConfigPlugin,
             PanOrbitCameraPlugin::<Precision>::default(),
-            WorldInspectorPlugin::new(),
+            // WorldInspectorPlugin::default(),
         ))
-        .add_plugins((solar_system::SolarSystemPlugin::<Precision>::default(),))
+        .add_plugins((
+            solar_system::SolarSystemPlugin::<Precision>::default(),
+            ui::UiPlugin,
+        ))
         .insert_resource(ClearColor(Color::BLACK))
         .add_systems(Startup, setup)
         .observe(on_add_scene_camera)
@@ -44,8 +50,9 @@ fn on_add_scene_camera(trigger: Trigger<OnAdd, SceneCamera>, mut commands: Comma
         .entity(trigger.entity())
         .add(|entity: Entity, world: &mut World| {
             let mut entity_mut = world.entity_mut(entity);
-            let transform = entity_mut.get::<Transform>().copied().unwrap_or_default();
+            let cam_config = entity_mut.get::<CameraConfig>().unwrap();
             entity_mut.insert((
+                FloatingOrigin,
                 PanOrbitCameraBundle {
                     camera: Camera3dBundle {
                         camera: Camera {
@@ -53,11 +60,12 @@ fn on_add_scene_camera(trigger: Trigger<OnAdd, SceneCamera>, mut commands: Comma
                             ..default()
                         },
                         exposure: Exposure::SUNLIGHT,
-                        transform,
                         ..default()
                     },
                     state: PanOrbitState {
-                        center: transform.translation,
+                        radius: cam_config.radius.as_base_value() as _,
+                        pitch: cam_config.rotation[0],
+                        yaw: cam_config.rotation[1],
                         ..default()
                     },
                     ..default()
@@ -66,7 +74,26 @@ fn on_add_scene_camera(trigger: Trigger<OnAdd, SceneCamera>, mut commands: Comma
                     intensity: 0.05,
                     low_frequency_boost_curvature: 0.8,
                     ..default()
-                }
+                },
             ));
         });
+}
+
+enum Reparent {
+    ToEntity(Entity),
+    ToName(String),
+}
+
+impl EntityCommand for Reparent {
+    fn apply(self, id: Entity, world: &mut World) {
+        let new_parent = match self {
+            Self::ToEntity(e) => e,
+            Self::ToName(name) => world
+                .query::<(Entity, &Name)>()
+                .iter(world)
+                .find_map(|(entity, e_name)| (name.as_str() == e_name.as_str()).then_some(entity))
+                .unwrap_or_else(|| panic!("No entity with name {name} found")),
+        };
+        world.entity_mut(id).remove_parent().set_parent(new_parent);
+    }
 }

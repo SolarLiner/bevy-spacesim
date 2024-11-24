@@ -6,14 +6,13 @@ use crate::scene::{components, error, manifest};
 use crate::{body, orbit, sun};
 use bevy::asset::io::Reader;
 use bevy::asset::{AssetLoader, AsyncReadExt, LoadContext};
-use bevy::core_pipeline::bloom::BloomSettings;
-use bevy::math::DVec3;
+use bevy::math::{vec3, DVec3};
 use bevy::prelude::*;
 use bevy::utils::ConditionalSendFuture;
 use big_space::precision::GridPrecision;
 use big_space::{
-    BigReferenceFrameBundle, BigSpaceCommands, BigSpatialBundle, FloatingOrigin, GridCell,
-    ReferenceFrame, ReferenceFrameCommands,
+    BigReferenceFrameBundle, BigSpaceCommands, FloatingOrigin, ReferenceFrame,
+    ReferenceFrameCommands,
 };
 use serde::{Deserialize, Serialize};
 use std::marker::PhantomData;
@@ -208,25 +207,13 @@ fn setup_camera<Prec: GridPrecision>(
         })
         .ok_or(CameraTargetNotFound(config.target.clone()))?;
     debug!("Found entity {entity} for target {}", config.target);
-    let (cell, local_pos) = frame.translation_to_grid(DVec3::from_array(
-        config.translation.map(|p| p.as_base_value()),
-    ));
-    debug!("{cell:?}");
-    debug!("{local_pos:?}");
     world.entity_mut(entity).with_children(|children| {
         children.spawn((
             BigReferenceFrameBundle::<Prec> {
-                transform: Transform::from_translation(local_pos).with_rotation(Quat::from_euler(
-                    EulerRot::XZY,
-                    config.rotation.x.to_radians(),
-                    config.rotation.z.to_radians(),
-                    config.rotation.y.to_radians(),
-                )),
-                cell,
                 ..default()
             },
             SceneCamera,
-            FloatingOrigin,
+            config.clone(),
         ));
     });
     Ok(())
