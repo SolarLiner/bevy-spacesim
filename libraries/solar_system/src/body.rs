@@ -7,7 +7,8 @@ pub struct BodyPlugin;
 impl Plugin for BodyPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<PlanetaryBody>()
-            .register_type::<RotationSpeed>();
+            .register_type::<RotationSpeed>()
+            .add_systems(Update, rotation_speed_system);
     }
 }
 
