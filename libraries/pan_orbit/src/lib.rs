@@ -3,6 +3,7 @@ use big_space::precision::GridPrecision;
 use std::marker::PhantomData;
 
 pub mod components;
+pub mod events;
 mod systems;
 
 pub struct PanOrbitCameraPlugin<Prec: GridPrecision>(PhantomData<Prec>);
@@ -26,6 +27,7 @@ impl<Prec: GridPrecision> Plugin for PanOrbitCameraPlugin<Prec> {
                         any_with_component::<components::PanOrbitState>
                             .and_then(resource_exists::<bevy_egui::EguiUserTextures>),
                     ),
-            );
+            )
+            .observe(systems::recenter_camera);
     }
 }

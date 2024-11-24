@@ -5,6 +5,7 @@ use bevy::input::mouse::{MouseMotion, MouseScrollUnit, MouseWheel};
 use big_space::precision::GridPrecision;
 use big_space::{GridCell, ReferenceFrame};
 use std::f32::consts::{FRAC_PI_2, PI, TAU};
+use crate::events::RecenterCamera;
 
 #[derive(Default)]
 pub(crate) struct BlockedInputs {
@@ -26,6 +27,7 @@ pub(crate) fn get_blocked_inputs(
     ret
 }
 
+#[allow(clippy::type_complexity)]
 pub(crate) fn pan_orbit_camera<Prec: GridPrecision>(
     In(blocked_inputs): In<BlockedInputs>,
     keyboard: Res<ButtonInput<KeyCode>>,
@@ -155,7 +157,7 @@ pub(crate) fn pan_orbit_camera<Prec: GridPrecision>(
         // (if we changed anything, or if the pan-orbit
         // controller was just added, and thus we are running
         // for the first time and need to initialize)
-        if any || state.is_added() {
+        if state.is_changed() || any || state.is_added() {
             let parent = parent.and_then(|parent| q_parent_ref_frame.get(**parent).ok().flatten());
 
             // YXZ Euler Rotation performs yaw/pitch/roll.
@@ -175,4 +177,11 @@ pub(crate) fn pan_orbit_camera<Prec: GridPrecision>(
             }
         }
     }
+}
+
+pub fn recenter_camera(_: Trigger<RecenterCamera>, mut q_state: Query<&mut PanOrbitState>) {
+    for mut state in &mut q_state {
+        debug!("Recentering camera");
+        state.center = Vec3::ZERO;
+    }    
 }

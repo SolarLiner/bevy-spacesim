@@ -1,8 +1,7 @@
 use crate::ui::planets::Planets;
 use crate::Reparent;
-use bevy::app::Plugins;
 use bevy::diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin};
-use bevy::ecs::system::{RunSystemOnce, SystemParam};
+use bevy::ecs::system::SystemParam;
 use bevy::math::vec2;
 use bevy::prelude::*;
 use bevy::render::diagnostic::RenderDiagnosticsPlugin;
@@ -11,7 +10,7 @@ use bevy_blur_regions::{BlurRegionsCamera, BlurRegionsPlugin, EguiWindowBlurExt}
 use bevy_egui::{EguiContext, EguiPlugin};
 use chrono::{DateTime, Datelike, Days, Months, TimeDelta, Timelike, Utc};
 use egui::panel::TopBottomSide;
-use egui::{containers, emath, widgets, Align, FontId, Frame, TextBuffer, Ui};
+use egui::{containers, emath, widgets, Align, FontId, Ui};
 use egui_plot::{PlotPoint, PlotPoints};
 use solar_system::body::PlanetaryBody;
 use solar_system::mjd::Mjd;
@@ -19,7 +18,7 @@ use solar_system::orbit::DrawOrbits;
 use solar_system::scene::components::SceneCamera;
 use solar_system::scene::si_prefix::SiPrefixed;
 use std::ops;
-use std::ops::Deref;
+use pan_orbit::components::PanOrbitState;
 
 mod planets;
 
@@ -37,17 +36,28 @@ impl Plugin for UiPlugin {
             app.add_plugins(RenderDiagnosticsPlugin);
         }
 
-        app.add_plugins(BlurRegionsPlugin::default())
+        app.add_plugins(BlurRegionsPlugin::<20>)
             .add_plugins(planets::PlanetsPlugin)
             .init_resource::<UiState>()
             .add_systems(Update, ui);
     }
 }
 
-#[derive(Default, Resource)]
+#[derive(Resource)]
 struct UiState {
     topbar_expanded: bool,
     date_window_opened: bool,
+    show_labels: bool,
+}
+
+impl Default for UiState {
+    fn default() -> Self {
+        Self {
+            topbar_expanded: false,
+            date_window_opened: false,
+            show_labels: true,
+        }
+    }
 }
 
 #[derive(SystemParam)]
@@ -83,13 +93,10 @@ impl<'w, 's> UiSystems<'w, 's> {
         self.date_time_window(ctx);
         self.bodies_on_screen(ctx);
     }
+
     fn topbar(&mut self, ctx: &egui::Context) {
         let rect = egui::TopBottomPanel::new(TopBottomSide::Top, "toolbar")
-            .frame(
-                egui::Frame::default()
-                    .fill(egui::Color32::from_black_alpha(64))
-                    .inner_margin(egui::vec2(6.0, 4.0)),
-            )
+            .frame(default_blurry_frame())
             .show(ctx, |ui| {
                 self.topbar_ui(ui);
             })
@@ -116,6 +123,7 @@ impl<'w, 's> UiSystems<'w, 's> {
                 }
                 ui.separator();
                 self.draw_orbit_toggle(ui);
+                ui.checkbox(&mut self.state.show_labels, "Show labels");
                 self.speed_controls(ui);
             });
         });
@@ -239,17 +247,13 @@ impl<'w, 's> UiSystems<'w, 's> {
             .open(&mut open)
             .collapsible(false)
             .max_height(400.0)
-            .frame(
-                egui::Frame::default()
-                    .fill(egui::Color32::from_black_alpha(64))
-                    .inner_margin(egui::vec2(6.0, 4.0)),
-            )
+            .frame(default_blurry_frame())
             .show_with_blur(ctx, |ui| {
                 ui.horizontal(|ui| {
                     ui.label("Current date: ");
                     ui.label(self.mjd.context().format("%Y-%m-%d %H:%M:%S").to_string());
                 });
-                if let Some(new_datetime) = datetime_widget(ui, **self.mjd.context()) {
+                if let Some(new_datetime) = datetime_edit_widget(ui, **self.mjd.context()) {
                     self.mjd.context_mut().set_from_datetime(new_datetime);
                 }
 
@@ -267,11 +271,19 @@ impl<'w, 's> UiSystems<'w, 's> {
         const TEXT_POS: f32 = CIRCLE_SIZE + 3.0;
 
         containers::CentralPanel::default()
-            .frame(Frame::none())
+            .frame(egui::Frame::none())
             .show(ctx, |ui| {
                 let Ok((cam_transform, camera)) = self.q_camera_transform.get_single() else {
                     return;
                 };
+                
+                if ui.allocate_rect(ui.clip_rect(), egui::Sense::click()).double_clicked() {
+                    self.commands.trigger(pan_orbit::events::RecenterCamera);
+                }
+
+                if !self.state.show_labels {
+                    return;
+                }
 
                 let painter = ui.painter();
                 for (planet_transform, name) in &self.q_planetary_bodies {
@@ -315,7 +327,7 @@ impl<'w, 's> UiSystems<'w, 's> {
     }
 }
 
-fn datetime_widget(ui: &mut Ui, input: DateTime<Utc>) -> Option<DateTime<Utc>> {
+fn datetime_edit_widget(ui: &mut Ui, input: DateTime<Utc>) -> Option<DateTime<Utc>> {
     let mut ret = None;
     ui.columns_const(|[left, right]| {
         let mut year = input.year();
@@ -398,4 +410,12 @@ fn number_widget<T: emath::Numeric>(
         }
     });
     ret
+}
+
+fn default_blurry_frame() -> egui::Frame {
+    let default_frame = egui::Frame::default();
+    let [r, g, b, _] = default_frame.fill.to_array();
+    default_frame
+        .fill(egui::Color32::from_rgba_unmultiplied(r, g, b, 128))
+        .inner_margin(egui::vec2(8.0, 6.0))
 }
