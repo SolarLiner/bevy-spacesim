@@ -3,9 +3,11 @@ use crate::Reparent;
 use bevy::app::Plugins;
 use bevy::diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin};
 use bevy::ecs::system::{RunSystemOnce, SystemParam};
+use bevy::math::vec2;
 use bevy::prelude::*;
 use bevy::render::diagnostic::RenderDiagnosticsPlugin;
 use bevy::window::PrimaryWindow;
+use bevy_blur_regions::{BlurRegionsCamera, BlurRegionsPlugin};
 use bevy_egui::{EguiContext, EguiPlugin};
 use egui::panel::TopBottomSide;
 use egui::{containers, widgets, Align, TextBuffer, Ui};
@@ -29,7 +31,8 @@ impl Plugin for UiPlugin {
             app.add_plugins(RenderDiagnosticsPlugin);
         }
 
-        app.add_plugins(planets::PlanetsPlugin)
+        app.add_plugins(BlurRegionsPlugin::default())
+            .add_plugins(planets::PlanetsPlugin)
             .init_resource::<UiState>()
             .add_systems(Update, ui);
     }
@@ -47,6 +50,7 @@ struct UiSystems<'w, 's> {
     diagnostics: Res<'w, DiagnosticsStore>,
     draw_orbits: ResMut<'w, DrawOrbits>,
     time: ResMut<'w, Time<Virtual>>,
+    q_camera_blur: Query<'w, 's, &'static mut BlurRegionsCamera<20>>,
     q_camera_entity: Query<'w, 's, Entity, With<SceneCamera>>,
     q_camera_parent: Query<'w, 's, &'static Parent, With<SceneCamera>>,
     commands: Commands<'w, 's>,
@@ -58,9 +62,22 @@ fn ui(mut this: UiSystems, mut q_egui: Query<&mut EguiContext, With<PrimaryWindo
     };
 
     let ctx = egui.get_mut();
-    egui::TopBottomPanel::new(TopBottomSide::Top, "toolbar").show(ctx, |ui| {
-        this.topbar_ui(ui);
+    ctx.style_mut(|style| {
+        style.spacing.item_spacing = egui::vec2(6.0, 4.0);
     });
+    let rect = egui::TopBottomPanel::new(TopBottomSide::Top, "toolbar")
+        .frame(egui::Frame::none().fill(egui::Color32::from_black_alpha(64)))
+        .show(ctx, |ui| {
+            this.topbar_ui(ui);
+        })
+        .response
+        .rect;
+    if let Ok(mut blur_regions) = this.q_camera_blur.get_single_mut() {
+        let scale_factor = ctx.options(|op| op.zoom_factor);
+        let min = vec2(rect.min.x, rect.min.y) * scale_factor;
+        let max = vec2(rect.max.x, rect.max.y) * scale_factor;
+        blur_regions.blur(Rect::from_corners(min, max));
+    }
 }
 
 impl<'w, 's> UiSystems<'w, 's> {
@@ -68,6 +85,7 @@ impl<'w, 's> UiSystems<'w, 's> {
         ui.horizontal(|ui| {
             self.parent_selector(ui);
             ui.with_layout(egui::Layout::right_to_left(Align::Max), |ui| {
+                ui.add_space(4.0);
                 if self.state.topbar_expanded {
                     self.fps_display_history(ui);
                 } else {
@@ -87,7 +105,6 @@ impl<'w, 's> UiSystems<'w, 's> {
             .show_ui(ui, |ui| {
                 let planets = self
                     .get_planets()
-                    .into_iter()
                     .map(|(e, s)| (e, s.to_string()))
                     .collect::<Vec<_>>();
                 for (e, s) in planets {

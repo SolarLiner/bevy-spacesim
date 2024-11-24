@@ -4,6 +4,7 @@ use bevy::core_pipeline::bloom::{BloomPrefilterSettings, BloomSettings};
 use bevy::ecs::system::EntityCommand;
 use bevy::prelude::*;
 use bevy::render::camera::Exposure;
+use bevy_blur_regions::BlurRegionsCamera;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_inspector_egui::DefaultInspectorConfigPlugin;
 use big_space::FloatingOrigin;
@@ -75,6 +76,7 @@ fn on_add_scene_camera(trigger: Trigger<OnAdd, SceneCamera>, mut commands: Comma
                     low_frequency_boost_curvature: 0.8,
                     ..default()
                 },
+                BlurRegionsCamera::default(),
             ));
         });
 }

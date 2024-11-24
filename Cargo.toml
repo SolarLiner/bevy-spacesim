@@ -17,6 +17,7 @@ solar_system = { path = "libraries/solar_system" }
 pan_orbit = { path = "libraries/pan_orbit" }
 
 bevy = { version = "0.14.2", features = ["serialize"] }
+bevy_blur_regions = { version = "0.5.0", features = ["egui"] }
 bevy_egui.workspace = true
 bevy-inspector-egui = "0.27.0"
 big_space.workspace = true
