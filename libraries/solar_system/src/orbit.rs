@@ -1,3 +1,4 @@
+use crate::mjd::Mjd;
 use bevy::math::{dvec2, dvec3, DMat3, DVec2, DVec3};
 use bevy::prelude::*;
 use big_space::precision::GridPrecision;
@@ -26,7 +27,10 @@ impl<Prec: GridPrecision> Plugin for OrbitPlugin<Prec> {
         app.register_type::<KeplerElements>()
             .register_type::<Orbit>()
             .insert_resource(DrawOrbits(self.draw_orbits))
-            .add_systems(Update, update_positions::<Prec>)
+            .add_systems(
+                Update,
+                update_positions::<Prec>.run_if(resource_exists::<Time<Mjd>>.and_then(mjd_valid)),
+            )
             .add_systems(
                 PostUpdate,
                 draw_orbits
@@ -69,8 +73,7 @@ mod serialize_as_degrees {
 #[reflect(Component, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct KeplerElements {
-    #[serde(default)]
-    pub epoch: Real,
+    pub epoch: Mjd,
     pub period: Real,
     pub semi_major_axis: Real,
     pub eccentricity: Real,
@@ -101,9 +104,9 @@ impl From<KeplerElements> for Orbit {
 
 impl Orbit {
     #[inline]
-    pub fn point_on_orbit(&self, t: Real) -> DVec3 {
-        let pt = self.point_on_orbit_local(t);
-        self.get_rotation_matrix() * dvec3(pt.x, 0.0, pt.y)
+    pub fn point_on_orbit(&self, t: Mjd) -> Option<DVec3> {
+        let pt = self.point_on_orbit_local(t)?;
+        Some(self.get_rotation_matrix() * dvec3(pt.x, 0.0, pt.y))
     }
 
     #[inline]
@@ -113,11 +116,12 @@ impl Orbit {
     }
 
     #[inline]
-    pub fn point_on_orbit_local(&self, t: Real) -> DVec2 {
-        let mean_anomaly = self.mean_anomaly(t - self.elements.epoch);
+    pub fn point_on_orbit_local(&self, t: Mjd) -> Option<DVec2> {
+        let seconds_since_epoch = (t.mjd()? - self.elements.epoch.mjd()?) * 86400.0;
+        let mean_anomaly = self.mean_anomaly(seconds_since_epoch);
         let eccentric_anomaly = self.eccentric_anomaly(mean_anomaly);
         let true_anomaly = self.true_anomaly(eccentric_anomaly);
-        self.position_from_angle_local(true_anomaly)
+        Some(self.position_from_angle_local(true_anomaly))
     }
 
     #[inline]
@@ -129,8 +133,8 @@ impl Orbit {
     }
 
     #[inline]
-    pub fn mean_anomaly(&self, t: Real) -> Real {
-        self.mean_angular_motion * t
+    pub fn mean_anomaly(&self, seconds_since_epoch: Real) -> Real {
+        self.mean_angular_motion * seconds_since_epoch
     }
 
     #[inline]
@@ -184,8 +188,12 @@ impl RootEquation for KeplerEquation {
     }
 }
 
+fn mjd_valid(mjd: Res<Time<Mjd>>) -> bool {
+    mjd.context().mjd().is_some()
+}
+
 fn update_positions<Prec: GridPrecision>(
-    time: Res<Time<Virtual>>,
+    time: Res<Time<Mjd>>,
     mut q: Query<(
         &mut Transform,
         &mut GridCell<Prec>,
@@ -193,9 +201,12 @@ fn update_positions<Prec: GridPrecision>(
         &Orbit,
     )>,
 ) {
-    let t = time.elapsed_seconds_f64();
+    let t = *time.context();
     for (mut transform, mut grid, frame, orbit) in &mut q {
-        let pos = orbit.point_on_orbit(t);
+        let Some(pos) = orbit.point_on_orbit(t) else {
+            error!("Could not compute position on orbit at time {}", t);
+            continue;
+        };
         let (new_grid, pos) = frame.translation_to_grid(pos);
         *grid = new_grid;
         transform.translation = pos;
@@ -231,7 +242,7 @@ mod tests {
 
     fn orbit() -> Orbit {
         KeplerElements {
-            epoch: 0.0,
+            epoch: Mjd::default(),
             period: 3.15576e7,
             semi_major_axis: 1.0e11,
             eccentricity: 0.0,
@@ -259,9 +270,10 @@ mod tests {
 
     #[test]
     fn point_on_orbit_calculates_correctly() {
+        let mjd = Mjd::zero();
         let orbit = orbit();
         let t = 3.15576e7 / 2.0; // half a year
-        let point = orbit.point_on_orbit(t);
+        let point = orbit.point_on_orbit(mjd).unwrap();
         assert_abs_diff_eq!(point.x, -1.0e11, epsilon = 1e6);
         assert_abs_diff_eq!(point.y, 0.0, epsilon = 1e6);
         assert_abs_diff_eq!(point.z, 0.0, epsilon = 1e6);

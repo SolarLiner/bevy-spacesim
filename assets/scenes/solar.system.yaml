@@ -1,5 +1,5 @@
 camera:
-  target: Earth
+  target: Mercury
   radius: 6770k
 root:
   name: Sun
@@ -17,6 +17,7 @@ root:
         color: [ 0.5, 0.5, 0.5 ] # Assuming a grey color for Mercury
       inclination: 7.0 # relative to the ecliptic
       orbit:
+        epoch: 51544.5 # Epochs use MJD format
         period: 87.9691d # in days, a sidereal year
         semi-major-axis: 57909227k # average distance to sun in kilometers
         eccentricity: 0.20563069
@@ -31,6 +32,7 @@ root:
         color: [ 1.0, 0.8, 0.0 ] # Assuming a yellowish color for Venus
       inclination: 3.39471 # relative to the ecliptic
       orbit:
+        epoch: 51544.5 # Epochs use MJD format
         period: 224.701d # in days, a sidereal year
         semi-major-axis: 108208000k # average distance to sun in kilometers
         eccentricity: 0.00677323
@@ -45,6 +47,7 @@ root:
         color: [ 0.0, 0.5, 1.0 ] # Assuming blue for Earth
       inclination: 23.5
       orbit:
+        epoch: 51544.5 # Epochs use MJD format
         period: 365.256363004d # in days, a sidereal year
         semi-major-axis: 149598023k # average distance to sun in kilometers
         eccentricity: 0.0167086
@@ -59,6 +62,7 @@ root:
             color: [ 0.8, 0.8, 0.8 ] # Assuming grey for Moon
           inclination: 6.68 # relative to Earth's equator
           orbit:
+            epoch: 51544.5 # Epochs use MJD format
             period: 27.321661d # in days, a sidereal month
             semi-major-axis: 384399k # average distance to Earth in kilometers
             eccentricity: 0.0549
@@ -73,6 +77,7 @@ root:
         color: [ 1.0, 0.5, 0.5 ] # Assuming a reddish color for Mars
       inclination: 1.850 # relative to the ecliptic
       orbit:
+        epoch: 51544.5 # Epochs use MJD format
         period: 686.971d # in days, a sidereal year
         semi-major-axis: 227939200k # average distance to sun in kilometers
         eccentricity: 0.0934
@@ -87,6 +92,7 @@ root:
             color: [ 0.5, 0.5, 0.5 ] # Assuming grey for Phobos
           inclination: 1.1 # relative to Mars' equator
           orbit:
+            epoch: 51544.5 # Epochs use MJD format
             period: 0.319d # in days
             semi-major-axis: 9376k # average distance to Mars in kilometers
             eccentricity: 0.0151
@@ -100,6 +106,7 @@ root:
             color: [ 0.5, 0.5, 0.5 ] # Assuming grey for Deimos
           inclination: 0.9 # relative to Mars' equator
           orbit:
+            epoch: 51544.5 # Epochs use MJD format
             period: 1.263d # in days
             semi-major-axis: 23463k # average distance to Mars in kilometers
             eccentricity: 0.0005

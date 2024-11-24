@@ -7,6 +7,7 @@ use bevy::math::{DVec3, Vec3};
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use crate::mjd::Mjd;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "kebab-case")]
@@ -28,8 +29,7 @@ pub enum MaterialSource {
 #[derive(Debug, Clone, Deserialize, Serialize, Component)]
 #[serde(rename_all = "kebab-case")]
 pub struct OrbitalElements {
-    #[serde(default)]
-    pub epoch: Duration,
+    pub epoch: Mjd,
     pub period: Duration,
     pub semi_major_axis: SiPrefixed,
     pub eccentricity: f64,
@@ -41,7 +41,7 @@ pub struct OrbitalElements {
 impl Into<orbit::KeplerElements> for OrbitalElements {
     fn into(self) -> KeplerElements {
         KeplerElements {
-            epoch: self.epoch.as_seconds(),
+            epoch: self.epoch,
             period: self.period.as_seconds(),
             semi_major_axis: self.semi_major_axis.as_base_value(),
             eccentricity: self.eccentricity,

@@ -4,6 +4,7 @@ use bevy::core_pipeline::bloom::{BloomPrefilterSettings, BloomSettings};
 use bevy::ecs::system::EntityCommand;
 use bevy::prelude::*;
 use bevy::render::camera::Exposure;
+use bevy::window::{PresentMode, WindowMode, WindowResolution};
 use bevy_blur_regions::BlurRegionsCamera;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_inspector_egui::DefaultInspectorConfigPlugin;
@@ -18,7 +19,14 @@ type Precision = i32;
 fn main() {
     App::new()
         .add_plugins((
-            DefaultPlugins.build().disable::<TransformPlugin>(),
+            DefaultPlugins.build().disable::<TransformPlugin>().set(WindowPlugin {
+                primary_window: Some(Window {
+                    title: "Bevy Space Sim".to_string(),
+                    resolution: WindowResolution::new(1920.0, 1080.0),
+                    ..default()
+                }),
+                ..default()
+            }),
             big_space::BigSpacePlugin::<Precision>::new(false),
             DefaultInspectorConfigPlugin,
             PanOrbitCameraPlugin::<Precision>::default(),

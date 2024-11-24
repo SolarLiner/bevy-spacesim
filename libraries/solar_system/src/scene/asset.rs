@@ -16,6 +16,7 @@ use big_space::{
 };
 use serde::{Deserialize, Serialize};
 use std::marker::PhantomData;
+use crate::mjd::Mjd;
 
 pub struct SolarSystemLoader<Prec: GridPrecision>(PhantomData<Prec>);
 
@@ -155,7 +156,7 @@ fn load_planet_config_inner<Prec: GridPrecision>(
     let pos = config
         .orbit
         .as_ref()
-        .map(|orbit| orbit.point_on_orbit(0.0))
+        .and_then(|orbit| orbit.point_on_orbit(Mjd::default()))
         .unwrap_or(DVec3::ZERO);
     let (cell, local_pos) = frame.frame().translation_to_grid(pos);
     frame.with_frame_default(|planet| {
