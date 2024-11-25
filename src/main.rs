@@ -1,5 +1,6 @@
 mod ui;
 
+use bevy::core_pipeline::auto_exposure::AutoExposureSettings;
 use bevy::core_pipeline::bloom::BloomSettings;
 use bevy::core_pipeline::core_3d::graph::Core3d;
 use bevy::ecs::system::EntityCommand;
@@ -106,6 +107,7 @@ fn on_add_scene_camera(trigger: Trigger<OnAdd, SceneCamera>, mut commands: Comma
                     intensity: 1e-5,
                     ..default()
                 }),
+                AutoExposureSettings::default(),
             ));
         });
 }
