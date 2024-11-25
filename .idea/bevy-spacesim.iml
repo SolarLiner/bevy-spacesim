@@ -7,6 +7,7 @@
       <sourceFolder url="file://$MODULE_DIR$/old_src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/libraries/pan_orbit/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/libraries/postprocessing/src" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/libraries/solar_system/target" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
     </content>

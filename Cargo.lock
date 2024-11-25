@@ -381,11 +381,13 @@ dependencies = [
  "bevy-inspector-egui",
  "bevy_blur_regions",
  "bevy_egui",
+ "bevy_mod_debugdump",
  "big_space",
  "chrono",
  "egui",
  "egui_plot",
  "pan_orbit",
+ "postprocessing",
  "solar_system",
 ]
 
@@ -921,6 +923,23 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "66cf695a264b043f2c4edb92dd5c742e6892180d2b30dac870012d153f8557ea"
 dependencies = [
  "glam",
+]
+
+[[package]]
+name = "bevy_mod_debugdump"
+version = "0.11.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "30f0eab3099d7d474b25a95a6a2a945e6089d75e099af5a571fe896f7c1a455b"
+dependencies = [
+ "bevy_app",
+ "bevy_color",
+ "bevy_ecs",
+ "bevy_render",
+ "bevy_utils",
+ "lexopt",
+ "once_cell",
+ "petgraph",
+ "pretty-type-name",
 ]
 
 [[package]]
@@ -2807,6 +2826,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "lexopt"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "baff4b617f7df3d896f97fe922b64817f6cd9a756bb81d40f8883f2f66dcb401"
+
+[[package]]
 name = "libc"
 version = "0.2.164"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3599,6 +3624,13 @@ dependencies = [
  "rustix",
  "tracing",
  "windows-sys 0.59.0",
+]
+
+[[package]]
+name = "postprocessing"
+version = "0.1.0"
+dependencies = [
+ "bevy",
 ]
 
 [[package]]

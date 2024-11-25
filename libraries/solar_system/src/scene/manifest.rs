@@ -1,13 +1,13 @@
+use crate::mjd::Mjd;
 use crate::orbit;
 use crate::orbit::KeplerElements;
 use crate::scene::duration::Duration;
 use crate::scene::si_prefix::SiPrefixed;
 use bevy::asset::Asset;
-use bevy::math::{DVec3, Vec3};
+use bevy::math::Vec3;
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use crate::mjd::Mjd;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "kebab-case")]

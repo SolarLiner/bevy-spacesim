@@ -1,5 +1,4 @@
 use bevy::prelude::*;
-use bevy::render::render_resource::AsBindGroupShaderType;
 use bevy::utils::EntityHashMap;
 use solar_system::body::PlanetaryBody;
 use std::collections::HashMap;

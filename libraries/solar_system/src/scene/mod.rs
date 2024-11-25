@@ -1,9 +1,6 @@
-use bevy::core_pipeline::bloom::BloomSettings;
 use bevy::prelude::*;
 use big_space::precision::GridPrecision;
-use big_space::{
-    BigSpace, BigSpaceRootBundle, BigSpatialBundle, FloatingOrigin, GridCell, ReferenceFrame,
-};
+use big_space::{BigSpace, GridCell, ReferenceFrame};
 use std::fmt;
 use std::marker::PhantomData;
 
@@ -45,10 +42,10 @@ fn on_scene_root_added<Prec: GridPrecision>(
     commands
         .entity(entity)
         .add(|entity: Entity, world: &mut World| {
-            world.entity_mut(entity).remove::<BigSpace>().insert((
-                Transform::default(),
-                GridCell::<Prec>::default(),
-            ));
+            world
+                .entity_mut(entity)
+                .remove::<BigSpace>()
+                .insert((Transform::default(), GridCell::<Prec>::default()));
         });
 }
 

@@ -1,4 +1,5 @@
 use crate::body::RotationSpeed;
+use crate::mjd::Mjd;
 use crate::orbit::Orbit;
 use crate::scene::components::SceneCamera;
 use crate::scene::manifest::{CameraConfig, PlanetMaterial};
@@ -6,17 +7,15 @@ use crate::scene::{components, error, manifest};
 use crate::{body, orbit, sun};
 use bevy::asset::io::Reader;
 use bevy::asset::{AssetLoader, AsyncReadExt, LoadContext};
-use bevy::math::{vec3, DVec3};
+use bevy::math::DVec3;
 use bevy::prelude::*;
 use bevy::utils::ConditionalSendFuture;
 use big_space::precision::GridPrecision;
 use big_space::{
-    BigReferenceFrameBundle, BigSpaceCommands, FloatingOrigin, ReferenceFrame,
-    ReferenceFrameCommands,
+    BigReferenceFrameBundle, BigSpaceCommands, ReferenceFrame, ReferenceFrameCommands,
 };
 use serde::{Deserialize, Serialize};
 use std::marker::PhantomData;
-use crate::mjd::Mjd;
 
 pub struct SolarSystemLoader<Prec: GridPrecision>(PhantomData<Prec>);
 
@@ -121,6 +120,7 @@ impl Planet {
 }
 
 #[derive(Debug, Clone, Asset, TypePath)]
+#[allow(unused)]
 pub struct SolarSystem {
     pub root: Planet,
     pub camera: CameraConfig,
@@ -200,7 +200,7 @@ fn setup_camera<Prec: GridPrecision>(
     config: &CameraConfig,
 ) -> Result<(), error::SceneLoadError> {
     use error::SceneLoadError::*;
-    let (entity, frame) = world
+    let (entity, _frame) = world
         .query::<(Entity, &mut ReferenceFrame<Prec>, &Name)>()
         .iter_mut(world)
         .find_map(|(entity, frame, name)| {
@@ -210,9 +210,7 @@ fn setup_camera<Prec: GridPrecision>(
     debug!("Found entity {entity} for target {}", config.target);
     world.entity_mut(entity).with_children(|children| {
         children.spawn((
-            BigReferenceFrameBundle::<Prec> {
-                ..default()
-            },
+            BigReferenceFrameBundle::<Prec> { ..default() },
             SceneCamera,
             config.clone(),
         ));

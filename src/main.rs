@@ -1,25 +1,32 @@
 mod ui;
 
-use bevy::core_pipeline::bloom::{BloomPrefilterSettings, BloomSettings};
+use bevy::core_pipeline::bloom::BloomSettings;
+use bevy::core_pipeline::core_3d::graph::Core3d;
 use bevy::ecs::system::EntityCommand;
 use bevy::prelude::*;
 use bevy::render::camera::Exposure;
-use bevy::window::{PresentMode, WindowMode, WindowResolution};
-use bevy_blur_regions::BlurRegionsCamera;
-use bevy_inspector_egui::quick::WorldInspectorPlugin;
+use bevy::render::render_graph::RenderGraphApp;
+use bevy::render::RenderApp;
+use bevy::window::WindowResolution;
+use bevy_blur_regions::{BlurRegionsCamera, BlurRegionsLabel};
 use bevy_inspector_egui::DefaultInspectorConfigPlugin;
 use big_space::FloatingOrigin;
 use pan_orbit::components::{PanOrbitCameraBundle, PanOrbitState};
 use pan_orbit::PanOrbitCameraPlugin;
+use postprocessing::lens_flares::{LensFlareBundle, LensFlareLabel, LensFlareSettings};
 use solar_system::scene::components::SceneCamera;
 use solar_system::scene::{CameraConfig, SolarSystemLoaderSettings, SolarSystemSceneBundle};
 
 type Precision = i32;
 
+#[allow(unreachable_code)]
 fn main() {
-    App::new()
-        .add_plugins((
-            DefaultPlugins.build().disable::<TransformPlugin>().set(WindowPlugin {
+    let mut app = App::new();
+    app.add_plugins((
+        DefaultPlugins
+            .build()
+            .disable::<TransformPlugin>()
+            .set(WindowPlugin {
                 primary_window: Some(Window {
                     title: "Bevy Space Sim".to_string(),
                     resolution: WindowResolution::new(1920.0, 1080.0),
@@ -27,19 +34,29 @@ fn main() {
                 }),
                 ..default()
             }),
-            big_space::BigSpacePlugin::<Precision>::new(false),
-            DefaultInspectorConfigPlugin,
-            PanOrbitCameraPlugin::<Precision>::default(),
-            // WorldInspectorPlugin::default(),
-        ))
-        .add_plugins((
-            solar_system::SolarSystemPlugin::<Precision>::default(),
-            ui::UiPlugin,
-        ))
-        .insert_resource(ClearColor(Color::BLACK))
-        .add_systems(Startup, setup)
-        .observe(on_add_scene_camera)
-        .run();
+        big_space::BigSpacePlugin::<Precision>::new(false),
+        DefaultInspectorConfigPlugin,
+        PanOrbitCameraPlugin::<Precision>::default(),
+        // WorldInspectorPlugin::default(),
+    ))
+    .add_plugins((
+        solar_system::SolarSystemPlugin::<Precision>::default(),
+        postprocessing::lens_flares::LensFlarePlugin,
+        ui::UiPlugin,
+    ))
+    .insert_resource(ClearColor(Color::BLACK))
+    .add_systems(Startup, setup)
+    .observe(on_add_scene_camera);
+
+    app.get_sub_app_mut(RenderApp)
+        .unwrap()
+        .add_render_graph_edges(Core3d, (LensFlareLabel, BlurRegionsLabel));
+    #[cfg(feature = "print-render-graph")]
+    {
+        bevy_mod_debugdump::print_render_graph(&mut app);
+        return;
+    }
+    app.run();
 }
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
@@ -85,6 +102,10 @@ fn on_add_scene_camera(trigger: Trigger<OnAdd, SceneCamera>, mut commands: Comma
                     ..default()
                 },
                 BlurRegionsCamera::default(),
+                LensFlareBundle::from(LensFlareSettings {
+                    intensity: 1e-5,
+                    ..default()
+                }),
             ));
         });
 }

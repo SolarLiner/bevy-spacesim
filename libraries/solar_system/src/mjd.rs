@@ -1,15 +1,11 @@
-use std::any::Any;
-use std::fmt;
 use bevy::prelude::*;
 use bevy::time::TimeSystem;
 use chrono::{DateTime, NaiveDate, NaiveTime, TimeDelta, Utc};
 use serde::de::Error;
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserializer, Serializer};
+use std::fmt;
 use std::fmt::Formatter;
-use std::str::FromStr;
 use std::time::Duration;
-use bevy::log::tracing_subscriber::field::VisitFmt;
-use bevy::reflect::{ApplyError, ReflectMut, ReflectOwned, ReflectRef, TypeInfo, ValueInfo};
 
 pub struct MjdPlugin;
 
@@ -88,16 +84,16 @@ impl Mjd {
     pub fn zero() -> Self {
         Self(Self::epoch())
     }
-    
+
     pub fn mjd(&self) -> Option<f64> {
         let delta = self.0 - Self::epoch();
         Some(delta.to_std().ok()?.as_secs_f64() / 86400.0)
     }
-    
+
     pub fn set_from_datetime(&mut self, datetime: DateTime<Utc>) {
         self.0 = datetime;
     }
-    
+
     pub fn set_from_mjd(&mut self, mjd: f64) {
         *self = Self::from(mjd)
     }

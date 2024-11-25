@@ -18,7 +18,6 @@ use solar_system::orbit::DrawOrbits;
 use solar_system::scene::components::SceneCamera;
 use solar_system::scene::si_prefix::SiPrefixed;
 use std::ops;
-use pan_orbit::components::PanOrbitState;
 
 mod planets;
 
@@ -276,8 +275,11 @@ impl<'w, 's> UiSystems<'w, 's> {
                 let Ok((cam_transform, camera)) = self.q_camera_transform.get_single() else {
                     return;
                 };
-                
-                if ui.allocate_rect(ui.clip_rect(), egui::Sense::click()).double_clicked() {
+
+                if ui
+                    .allocate_rect(ui.clip_rect(), egui::Sense::click())
+                    .double_clicked()
+                {
                     self.commands.trigger(pan_orbit::events::RecenterCamera);
                 }
 
