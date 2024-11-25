@@ -1,3 +1,4 @@
+use bevy::asset::embedded_asset;
 use bevy::ecs::system::lifetimeless::Read;
 use bevy::prelude::*;
 use bevy::render::camera::ExtractedCamera;
@@ -27,6 +28,7 @@ pub struct KawasePlugin;
 
 impl Plugin for KawasePlugin {
     fn build(&self, app: &mut App) {
+        embedded_asset!(app, "shaders/kawase.wgsl");
         let render_app = app.sub_app_mut(RenderApp);
         render_app
             .add_plugins(ExtractComponentPlugin::<KawaseMarker>::default())
@@ -116,6 +118,7 @@ fn prepare_kawase_bind_groups(
             texel_size,
             texel_half_size: half_size,
             kernel_size: 0.0,
+            scale: 0.4,
         });
         uniforms.write_buffer(&render_device, &render_queue);
         let bind_groups = textures.textures.each_ref().map(|tex| {
@@ -146,7 +149,7 @@ impl FromWorld for KawasePassPipeline {
     fn from_world(world: &mut World) -> Self {
         let render_device = world.resource::<RenderDevice>();
         let layout = render_device.create_bind_group_layout(
-            "kawase_bind_group_layout",
+            "Kawase BindGroupLayout",
             &BindGroupLayoutEntries::sequential(
                 ShaderStages::VERTEX_FRAGMENT,
                 (
@@ -159,13 +162,13 @@ impl FromWorld for KawasePassPipeline {
             ),
         );
 
-        let shader = world.load_asset("shaders/kawase.wgsl");
+        let shader = world.load_asset("embedded://postprocessing/shaders/kawase.wgsl");
 
         let pipeline_id =
             world
                 .resource_mut::<PipelineCache>()
                 .queue_render_pipeline(RenderPipelineDescriptor {
-                    label: Some("kawase_pipeline".into()),
+                    label: Some("Kawase Pipeline".into()),
                     layout: vec![layout.clone()],
                     vertex: VertexState {
                         shader: shader.clone(),
@@ -239,7 +242,8 @@ impl render_graph::Node for KawasePassNode {
         let pipeline_cache = world.resource::<PipelineCache>();
         let pipeline = world.resource::<KawasePassPipeline>();
         let Some(render_pipeline) = pipeline_cache.get_render_pipeline(pipeline.pipeline_id) else {
-            warn!("Cannot get render pipeline for kawase blur node");
+            let state = pipeline_cache.get_render_pipeline_state(pipeline.pipeline_id);
+            warn!("Cannot get render pipeline for kawase blur node (state: {state:?})");
             graph.set_output(
                 0,
                 SlotValue::TextureView(graph.get_input_texture(0)?.clone()),
@@ -252,7 +256,7 @@ impl render_graph::Node for KawasePassNode {
         let input_texture = graph.get_input_texture(0)?;
         let mut uniforms = bind_groups.uniform.lock().unwrap();
         let first_bind_group = render_context.render_device().create_bind_group(
-            "kawase_bind_group_first",
+            "Kawase BindGroup First",
             &pipeline.layout,
             &BindGroupEntries::sequential((
                 input_texture,
@@ -261,7 +265,7 @@ impl render_graph::Node for KawasePassNode {
             )),
         );
 
-        for (i, k) in [0.5, 1f32, 1.0, 1.5, 2.0].into_iter().enumerate() {
+        for (i, k) in [1f32, 2.0, 3.5, 5.0].into_iter().enumerate() {
             uniforms.get_mut().kernel_size = k;
             uniforms.write_buffer(render_context.render_device(), render_queue);
 
@@ -271,7 +275,7 @@ impl render_graph::Node for KawasePassNode {
             let output_ix = if is_ping { 1 } else { 0 };
 
             let mut render_pass = render_context.begin_tracked_render_pass(RenderPassDescriptor {
-                label: Some("kawase_render_pass"),
+                label: Some("Kawase RenderPass"),
                 color_attachments: &[Some(RenderPassColorAttachment {
                     view: &textures.textures[output_ix].default_view,
                     resolve_target: None,
@@ -293,7 +297,7 @@ impl render_graph::Node for KawasePassNode {
             );
             render_pass.draw(0..3, 0..1);
 
-            debug!("Kawase blur pass {input_ix} -> {output_ix} (kernel size {k})");
+            // debug!("Kawase blur pass {input_ix} -> {output_ix} (kernel size {k})");
             graph.set_output(0, textures.textures[output_ix].default_view.clone())?;
         }
         Ok(())
@@ -305,4 +309,5 @@ struct KawaseShaderUniforms {
     texel_size: Vec2,
     texel_half_size: Vec2,
     kernel_size: f32,
+    scale: f32,
 }

@@ -1,6 +1,6 @@
 camera:
-  target: Mercury
-  radius: 6770k
+  target: Earth
+  radius: 2M
 root:
   name: Sun
   siderial-day: 24.47d

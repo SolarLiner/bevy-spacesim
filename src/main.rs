@@ -50,7 +50,7 @@ fn main() {
 
     app.get_sub_app_mut(RenderApp)
         .unwrap()
-        .add_render_graph_edges(Core3d, (LensFlareLabel, BlurRegionsLabel));
+        .add_render_graph_edges(Core3d, (LensFlareLabel::Mix, BlurRegionsLabel));
     #[cfg(feature = "print-render-graph")]
     {
         bevy_mod_debugdump::print_render_graph(&mut app);
