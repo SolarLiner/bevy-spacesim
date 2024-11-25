@@ -17,6 +17,7 @@ use solar_system::mjd::Mjd;
 use solar_system::orbit::DrawOrbits;
 use solar_system::scene::components::SceneCamera;
 use solar_system::scene::si_prefix::SiPrefixed;
+use starrynight::Star;
 use std::ops;
 
 mod planets;
@@ -74,6 +75,7 @@ struct UiSystems<'w, 's> {
         Query<'w, 's, (&'static GlobalTransform, &'static Camera), With<SceneCamera>>,
     q_planetary_bodies:
         Query<'w, 's, (&'static GlobalTransform, Option<&'static Name>), With<PlanetaryBody>>,
+    q_stars: Query<'w, 's, (&'static GlobalTransform, &'static Star, &'static Name)>,
     commands: Commands<'w, 's>,
 }
 
@@ -266,9 +268,6 @@ impl<'w, 's> UiSystems<'w, 's> {
     }
 
     fn bodies_on_screen(&mut self, ctx: &egui::Context) {
-        const CIRCLE_SIZE: f32 = 5.0;
-        const TEXT_POS: f32 = CIRCLE_SIZE + 3.0;
-
         containers::CentralPanel::default()
             .frame(egui::Frame::none())
             .show(ctx, |ui| {
@@ -289,13 +288,16 @@ impl<'w, 's> UiSystems<'w, 's> {
 
                 let painter = ui.painter();
                 for (planet_transform, name) in &self.q_planetary_bodies {
+                    const CIRCLE_SIZE: f32 = 5.0;
+                    const TEXT_POS: f32 = CIRCLE_SIZE + 3.0;
+
                     let distance = planet_transform
                         .translation()
                         .distance(cam_transform.translation());
                     let distance = SiPrefixed::from_base_value(distance as f64);
                     let name = name
                         .map(|name| name.to_string())
-                        .unwrap_or_else(|| "Unknown body".to_string());
+                        .unwrap_or_else(|| "Unknown Body".to_string());
                     let Some(viewport) =
                         camera.world_to_viewport(cam_transform, planet_transform.translation())
                     else {
@@ -306,10 +308,38 @@ impl<'w, 's> UiSystems<'w, 's> {
                     painter.circle_filled(center, CIRCLE_SIZE, egui::Color32::WHITE);
                     painter.text(
                         center + egui::vec2(TEXT_POS, TEXT_POS),
-                        egui::Align2::LEFT_BOTTOM,
+                        egui::Align2::LEFT_CENTER,
                         text,
                         FontId::proportional(11.0),
                         egui::Color32::WHITE,
+                    );
+                }
+
+                for (transform, star, name) in &self.q_stars {
+                    const CIRCLE_SIZE: f32 = 3.0;
+                    const TEXT_POS: f32 = CIRCLE_SIZE + 3.0;
+
+                    let Some(viewport) =
+                        camera.world_to_viewport(cam_transform, transform.translation())
+                    else {
+                        continue;
+                    };
+                    if star.relative_magnitude > 3.0 {
+                        continue;
+                    }
+                    let text = format!("{name}\n{distance:.1}pc", distance = star.distance_parsecs);
+                    let center = egui::pos2(viewport.x, viewport.y);
+                    let color = {
+                        let [r, g, b] = star.blackbody_color().to_u8_array_no_alpha();
+                        egui::Color32::from_rgb(r, g, b)
+                    };
+                    painter.circle_filled(center, CIRCLE_SIZE, color);
+                    painter.text(
+                        center + egui::vec2(TEXT_POS, TEXT_POS),
+                        egui::Align2::LEFT_CENTER,
+                        text,
+                        FontId::proportional(11.0),
+                        color,
                     );
                 }
             });

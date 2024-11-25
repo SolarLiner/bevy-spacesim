@@ -67,7 +67,7 @@ fn prepare_pingpong_textures(
     views: Query<(Entity, &ExtractedCamera), Without<PingPongTextures>>,
 ) {
     for (entity, camera) in &views {
-        debug!("Prepare textures for {entity}");
+        trace!("Prepare textures for {entity}");
         if let Some(size) = camera.physical_viewport_size {
             let descs = std::array::from_fn(|i| i == 0).map(|is_first| TextureDescriptor {
                 label: Some(if is_first {
@@ -111,7 +111,7 @@ fn prepare_kawase_bind_groups(
     views: Query<(Entity, &PingPongTextures), Without<KawaseBindGroup>>,
 ) {
     for (entity, textures) in &views {
-        debug!("Prepare bind groups for {entity}");
+        trace!("Prepare bind groups for {entity}");
         let texel_size = textures.texture_size.as_vec2().recip();
         let half_size = texel_size / 2.0;
         let mut uniforms = UniformBuffer::from(KawaseShaderUniforms {

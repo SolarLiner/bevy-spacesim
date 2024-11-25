@@ -16,6 +16,7 @@ edition = "2021"
 [dependencies]
 pan_orbit = { path = "libraries/pan_orbit" }
 solar_system = { path = "libraries/solar_system" }
+starrynight = { path = "libraries/starrynight" }
 postprocessing = { path = "libraries/postprocessing" }
 
 bevy = { version = "0.14.2", features = ["serialize"] }

@@ -4,7 +4,7 @@ camera:
 root:
   name: Sun
   siderial-day: 24.47d
-  radius: 696340k
+  radius: 696.340M
   material:
     color: [ 1.0, 1.0, 1.0 ]
     emissive-power: 120e3

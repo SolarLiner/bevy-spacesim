@@ -3,6 +3,8 @@ mod ui;
 use bevy::core_pipeline::auto_exposure::AutoExposureSettings;
 use bevy::core_pipeline::bloom::BloomSettings;
 use bevy::core_pipeline::core_3d::graph::Core3d;
+use bevy::core_pipeline::experimental::taa::{TemporalAntiAliasBundle, TemporalAntiAliasSettings};
+use bevy::core_pipeline::motion_blur::{MotionBlur, MotionBlurBundle};
 use bevy::ecs::system::EntityCommand;
 use bevy::prelude::*;
 use bevy::render::camera::Exposure;
@@ -10,15 +12,17 @@ use bevy::render::render_graph::RenderGraphApp;
 use bevy::render::RenderApp;
 use bevy::window::WindowResolution;
 use bevy_blur_regions::{BlurRegionsCamera, BlurRegionsLabel};
+use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_inspector_egui::DefaultInspectorConfigPlugin;
-use big_space::FloatingOrigin;
-use pan_orbit::components::{PanOrbitCameraBundle, PanOrbitState};
+use big_space::{BigSpace, FloatingOrigin, ReferenceFrame};
+use pan_orbit::components::{PanOrbitCameraBundle, PanOrbitSettings, PanOrbitState};
 use pan_orbit::PanOrbitCameraPlugin;
 use postprocessing::lens_flares::{LensFlareBundle, LensFlareLabel, LensFlareSettings};
 use solar_system::scene::components::SceneCamera;
 use solar_system::scene::{CameraConfig, SolarSystemLoaderSettings, SolarSystemSceneBundle};
 
-type Precision = i32;
+type SolarSystemPrec = i32;
+type StarsPrec = SolarSystemPrec;
 
 #[allow(unreachable_code)]
 fn main() {
@@ -35,13 +39,14 @@ fn main() {
                 }),
                 ..default()
             }),
-        big_space::BigSpacePlugin::<Precision>::new(false),
+        big_space::BigSpacePlugin::<SolarSystemPrec>::new(false),
         DefaultInspectorConfigPlugin,
-        PanOrbitCameraPlugin::<Precision>::default(),
+        PanOrbitCameraPlugin::<SolarSystemPrec>::default(),
         // WorldInspectorPlugin::default(),
     ))
     .add_plugins((
-        solar_system::SolarSystemPlugin::<Precision>::default(),
+        solar_system::SolarSystemPlugin::<SolarSystemPrec>::default(),
+        starrynight::StarryNightPlugin::<StarsPrec>::default(),
         postprocessing::lens_flares::LensFlarePlugin,
         ui::UiPlugin,
     ))
@@ -61,13 +66,22 @@ fn main() {
 }
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
-    commands.spawn(SolarSystemSceneBundle::<Precision>::from_path(
+    commands.spawn(SolarSystemSceneBundle::<SolarSystemPrec>::from_path(
         &asset_server,
         "scenes/solar.system.yaml",
         &SolarSystemLoaderSettings {
             cell_length: 10_000.0,
             switching_threshold: 100.0,
         },
+    ));
+    commands.spawn((
+        SceneBundle {
+            scene: asset_server.load("hyg_v38.csv"),
+            ..default()
+        },
+        ReferenceFrame::<StarsPrec>::new(1e9, 100.0),
+        BigSpace::default(),
+        starrynight::SceneRoot,
     ));
 }
 
@@ -99,15 +113,18 @@ fn on_add_scene_camera(trigger: Trigger<OnAdd, SceneCamera>, mut commands: Comma
                 },
                 BloomSettings {
                     intensity: 0.05,
-                    low_frequency_boost_curvature: 0.8,
+                    low_frequency_boost: 0.65,
+                    high_pass_frequency: 0.3,
                     ..default()
                 },
+                AutoExposureSettings::default(),
+                TemporalAntiAliasBundle::default(),
+                MotionBlur::default(),
                 BlurRegionsCamera::default(),
                 LensFlareBundle::from(LensFlareSettings {
                     intensity: 1e-5,
                     ..default()
                 }),
-                AutoExposureSettings::default(),
             ));
         });
 }
