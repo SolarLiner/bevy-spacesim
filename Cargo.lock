@@ -1316,7 +1316,6 @@ version = "0.7.0"
 dependencies = [
  "bevy_app",
  "bevy_color",
- "bevy_core",
  "bevy_ecs",
  "bevy_gizmos",
  "bevy_hierarchy",
