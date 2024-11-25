@@ -38,16 +38,16 @@ pub struct OrbitalElements {
     pub argument_of_periapsis: f64,
 }
 
-impl Into<orbit::KeplerElements> for OrbitalElements {
-    fn into(self) -> KeplerElements {
+impl From<OrbitalElements> for orbit::KeplerElements {
+    fn from(val: OrbitalElements) -> Self {
         KeplerElements {
-            epoch: self.epoch,
-            period: self.period.as_seconds(),
-            semi_major_axis: self.semi_major_axis.as_base_value(),
-            eccentricity: self.eccentricity,
-            inclination: self.inclination.to_radians(),
-            longitude_of_ascending_node: self.longitude_of_ascending_node.to_radians(),
-            argument_of_periapsis: self.argument_of_periapsis.to_radians(),
+            epoch: val.epoch,
+            period: val.period.as_seconds(),
+            semi_major_axis: val.semi_major_axis.as_base_value(),
+            eccentricity: val.eccentricity,
+            inclination: val.inclination.to_radians(),
+            longitude_of_ascending_node: val.longitude_of_ascending_node.to_radians(),
+            argument_of_periapsis: val.argument_of_periapsis.to_radians(),
         }
     }
 }

@@ -1,11 +1,10 @@
-use crate::kawase::{KawaseMarker, KawaseNodeLabel, KawasePassNode};
+use crate::kawase::{KawaseMarker, KawasePassNode};
 use crate::view_target::ViewTargetLabel;
 use crate::{kawase, view_target};
 use bevy::asset::embedded_asset;
 use bevy::ecs::system::lifetimeless::Read;
 use bevy::render::camera::ExtractedCamera;
 use bevy::render::render_graph::{RenderGraph, SlotInfo, SlotType};
-use bevy::render::render_phase::RenderCommandResult;
 use bevy::render::texture::{CachedTexture, TextureCache};
 use bevy::render::{render_graph, Render, RenderSet};
 use bevy::{

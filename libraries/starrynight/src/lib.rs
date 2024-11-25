@@ -4,15 +4,12 @@ use bevy::asset::io::Reader;
 use bevy::asset::{AssetLoader, LoadContext};
 use bevy::math::{dvec3, DVec3};
 use bevy::prelude::*;
-use bevy::render::camera::Exposure;
 use bevy::tasks::futures_lite::StreamExt;
 use bevy::utils::ConditionalSendFuture;
 use big_space::precision::GridPrecision;
-use big_space::{BigSpace, BigSpatialBundle, GridCell, ReferenceFrame};
+use big_space::{BigSpace, GridCell, ReferenceFrame};
 use std::convert::Infallible;
-use std::f64::consts;
 use std::marker::PhantomData;
-use std::str::FromStr;
 
 pub struct StarryNightPlugin<Prec: GridPrecision>(PhantomData<Prec>);
 
