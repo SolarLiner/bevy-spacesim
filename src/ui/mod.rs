@@ -142,7 +142,7 @@ impl<'w, 's> UiSystems<'w, 's> {
                 for (e, s) in planets {
                     if ui.button(s).clicked() {
                         if let Ok(entity) = self.q_camera_entity.get_single() {
-                            self.commands.entity(entity).add(Reparent::ToEntity(e));
+                            self.commands.entity(entity).add(Reparent(e));
                         }
                     }
                 }

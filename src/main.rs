@@ -128,21 +128,11 @@ fn on_add_scene_camera(trigger: Trigger<OnAdd, SceneCamera>, mut commands: Comma
         });
 }
 
-enum Reparent {
-    ToEntity(Entity),
-    ToName(String),
-}
+struct Reparent(Entity);
 
 impl EntityCommand for Reparent {
     fn apply(self, id: Entity, world: &mut World) {
-        let new_parent = match self {
-            Self::ToEntity(e) => e,
-            Self::ToName(name) => world
-                .query::<(Entity, &Name)>()
-                .iter(world)
-                .find_map(|(entity, e_name)| (name.as_str() == e_name.as_str()).then_some(entity))
-                .unwrap_or_else(|| panic!("No entity with name {name} found")),
-        };
+        let Self(new_parent) = self;
         world.entity_mut(id).remove_parent().set_parent(new_parent);
     }
 }
