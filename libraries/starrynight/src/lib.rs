@@ -183,10 +183,10 @@ impl Star {
     }
 
     pub fn mesh_scale(&self) -> f32 {
-        const BASE_SCALE: f64 = 5e11; // Arbitrary base scaling
-        const BASE_MAG: f64 = 0.0; // Absolute magnitude for the Sun
+        const BASE_SCALE: f64 = 6e11;
+        const BASE_MAG: f64 = 0.0;
 
-        self.magnitude_scaling_biased(BASE_SCALE, BASE_MAG, 0.2) as _
+        self.magnitude_scaling_biased(BASE_SCALE, BASE_MAG, 0.1) as _
     }
 
     pub fn blackbody_color(&self) -> Srgba {
