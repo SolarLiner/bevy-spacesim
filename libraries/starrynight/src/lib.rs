@@ -1,5 +1,3 @@
-mod errors;
-
 use bevy::asset::io::Reader;
 use bevy::asset::{AssetLoader, LoadContext};
 use bevy::math::{dvec3, DVec3};

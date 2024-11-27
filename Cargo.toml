@@ -32,6 +32,7 @@ egui_plot = "0.29.0"
 [features]
 dev = ["bevy/dynamic_linking", "bevy/bevy_dev_tools", "bevy/file_watcher", "bevy/embedded_watcher"]
 print-render-graph = ["dep:bevy_mod_debugdump"]
+profiling = ["bevy/trace_tracy", "bevy/trace_chrome"]
 
 [profile.dev]
 opt-level = 1
