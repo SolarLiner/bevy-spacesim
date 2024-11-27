@@ -6,6 +6,7 @@ use std::marker::PhantomData;
 
 mod asset;
 pub mod components;
+pub mod distance;
 mod duration;
 mod error;
 mod manifest;

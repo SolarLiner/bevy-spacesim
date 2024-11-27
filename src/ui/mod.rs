@@ -16,7 +16,7 @@ use solar_system::body::PlanetaryBody;
 use solar_system::mjd::Mjd;
 use solar_system::orbit::DrawOrbits;
 use solar_system::scene::components::SceneCamera;
-use solar_system::scene::si_prefix::SiPrefixed;
+use solar_system::scene::distance::{Distance, DistanceUnit};
 use starrynight::Star;
 use std::ops;
 
@@ -294,7 +294,7 @@ impl<'w, 's> UiSystems<'w, 's> {
                     let distance = planet_transform
                         .translation()
                         .distance(cam_transform.translation());
-                    let distance = SiPrefixed::from_base_value(distance as f64);
+                    let distance = Distance::from(distance as f64);
                     let name = name
                         .map(|name| name.to_string())
                         .unwrap_or_else(|| "Unknown Body".to_string());
@@ -303,7 +303,7 @@ impl<'w, 's> UiSystems<'w, 's> {
                     else {
                         continue;
                     };
-                    let text = format!("{name}\n{distance:.1}m");
+                    let text = format!("{name}\n{distance:.1}");
                     let center = egui::pos2(viewport.x, viewport.y);
                     painter.circle_filled(center, CIRCLE_SIZE, egui::Color32::WHITE);
                     painter.text(
@@ -327,7 +327,12 @@ impl<'w, 's> UiSystems<'w, 's> {
                     if star.relative_magnitude > 3.0 {
                         continue;
                     }
-                    let text = format!("{name}\n{distance:.1}pc", distance = star.distance_parsecs);
+                    let distance = Distance {
+                        value: star.distance_parsecs,
+                        unit: DistanceUnit::Parsecs,
+                    }
+                    .renormalize();
+                    let text = format!("{name}\n{distance:.1}");
                     let center = egui::pos2(viewport.x, viewport.y);
                     let color = {
                         let [r, g, b] = star.blackbody_color().to_u8_array_no_alpha();
