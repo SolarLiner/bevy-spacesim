@@ -255,8 +255,6 @@ impl render_graph::Node for DownsampleNode {
             return Ok(());
         };
 
-        let render_queue = world.resource::<RenderQueue>();
-
         for base_mip_level in 0..settings.downsample {
             let texture_view =
                 pipeline_specialized
@@ -273,7 +271,7 @@ impl render_graph::Node for DownsampleNode {
                         array_layer_count: None,
                     });
             let mut render_pass = render_context.begin_tracked_render_pass(RenderPassDescriptor {
-                label: Some("Downsample RenderPass".into()),
+                label: Some("Downsample RenderPass"),
                 color_attachments: &[Some(RenderPassColorAttachment {
                     view: &texture_view,
                     resolve_target: None,
