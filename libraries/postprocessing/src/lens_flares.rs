@@ -288,6 +288,8 @@ impl FromWorld for GhostPipeline {
 
         // We can create the sampler here since it won't change at runtime and doesn't depend on the view
         let sampler = render_device.create_sampler(&SamplerDescriptor {
+            address_mode_u: AddressMode::MirrorRepeat,
+            address_mode_v: AddressMode::MirrorRepeat,
             min_filter: FilterMode::Linear,
             mag_filter: FilterMode::Linear,
             ..default()

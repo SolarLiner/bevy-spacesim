@@ -8,12 +8,12 @@ use bevy::render::render_graph::{
 };
 use bevy::render::render_resource::binding_types::{sampler, texture_2d, uniform_buffer};
 use bevy::render::render_resource::{
-    BindGroup, BindGroupEntries, BindGroupLayout, BindGroupLayoutEntries, CachedRenderPipelineId,
-    ColorTargetState, ColorWrites, Extent3d, FragmentState, MultisampleState, Operations,
-    PipelineCache, PrimitiveState, RenderPassColorAttachment, RenderPassDescriptor,
-    RenderPipelineDescriptor, Sampler, SamplerBindingType, SamplerDescriptor, ShaderStages,
-    ShaderType, TextureDescriptor, TextureDimension, TextureFormat, TextureSampleType,
-    TextureUsages, UniformBuffer, VertexState,
+    AddressMode, BindGroup, BindGroupEntries, BindGroupLayout, BindGroupLayoutEntries,
+    CachedRenderPipelineId, ColorTargetState, ColorWrites, Extent3d, FragmentState,
+    MultisampleState, Operations, PipelineCache, PrimitiveState, RenderPassColorAttachment,
+    RenderPassDescriptor, RenderPipelineDescriptor, Sampler, SamplerBindingType, SamplerDescriptor,
+    ShaderStages, ShaderType, TextureDescriptor, TextureDimension, TextureFormat,
+    TextureSampleType, TextureUsages, UniformBuffer, VertexState,
 };
 use bevy::render::renderer::{RenderContext, RenderDevice, RenderQueue};
 use bevy::render::texture::{CachedTexture, TextureCache};
@@ -91,7 +91,11 @@ fn prepare_pingpong_textures(
             commands.entity(entity).insert(PingPongTextures {
                 texture_size: size,
                 textures,
-                sampler: render_device.create_sampler(&SamplerDescriptor::default()),
+                sampler: render_device.create_sampler(&SamplerDescriptor {
+                    address_mode_u: AddressMode::MirrorRepeat,
+                    address_mode_v: AddressMode::MirrorRepeat,
+                    ..default()
+                }),
             });
         }
     }

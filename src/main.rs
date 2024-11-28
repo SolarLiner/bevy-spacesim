@@ -112,8 +112,6 @@ fn on_add_scene_camera(trigger: Trigger<OnAdd, SceneCamera>, mut commands: Comma
                 },
                 BloomSettings {
                     intensity: 0.05,
-                    low_frequency_boost: 0.65,
-                    high_pass_frequency: 0.3,
                     ..default()
                 },
                 AutoExposureSettings::default(),

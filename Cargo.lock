@@ -519,8 +519,6 @@ dependencies = [
 [[package]]
 name = "bevy_blur_regions"
 version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bda4a9fa4e4185645a73a03314110609fd957226d140a78e8e018a74543656ae"
 dependencies = [
  "bevy",
  "bevy_egui",
