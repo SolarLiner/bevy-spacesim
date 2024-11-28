@@ -200,15 +200,17 @@ fn update_positions<Prec: GridPrecision>(
     )>,
 ) {
     let t = *time.context();
-    for (mut transform, mut grid, frame, orbit) in &mut q {
-        let Some(pos) = orbit.point_on_orbit(t) else {
-            error!("Could not compute position on orbit at time {}", t);
-            continue;
-        };
-        let (new_grid, pos) = frame.translation_to_grid(pos);
-        *grid = new_grid;
-        transform.translation = pos;
-    }
+
+    q.par_iter_mut()
+        .for_each(|(mut transform, mut grid, frame, orbit)| {
+            let Some(pos) = orbit.point_on_orbit(t) else {
+                error!("Could not compute position on orbit at time {}", t);
+                return;
+            };
+            let (new_grid, pos) = frame.translation_to_grid(pos);
+            *grid = new_grid;
+            transform.translation = pos;
+        });
 }
 
 fn draw_orbits(
