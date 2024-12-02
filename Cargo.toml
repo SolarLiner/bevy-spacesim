@@ -20,7 +20,7 @@ starrynight = { path = "libraries/starrynight" }
 postprocessing = { path = "libraries/postprocessing" }
 
 bevy = { workspace = true, features = ["serialize"] }
-bevy_blur_regions = { version = "0.5.0", features = ["egui"] }
+bevy_blur_regions = { git = "https://github.com/SolarLiner/bevy_blur_regions.git", branch = "feat/bevy0.15", features = ["egui"] }
 bevy_egui.workspace = true
 bevy-inspector-egui = "0.28.0"
 bevy_mod_debugdump = { git = "https://github.com/jakobhellermann/bevy_mod_debugdump.git", optional = true }
