@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use bevy::scene::SceneInstanceReady;
 use big_space::precision::GridPrecision;
 use big_space::{BigSpace, GridCell, ReferenceFrame};
 use std::fmt;
@@ -12,7 +13,9 @@ mod error;
 mod manifest;
 pub mod si_prefix;
 
-pub use asset::SolarSystemLoaderSettings;
+use crate::scene::components::SolarSystemRoot;
+pub use asset::SolarSystemSettings;
+use components::BigSpaceScene;
 pub use manifest::CameraConfig;
 
 pub struct PlanetScenePlugin<Prec: GridPrecision>(PhantomData<Prec>);
@@ -27,53 +30,33 @@ impl<Prec: GridPrecision> Plugin for PlanetScenePlugin<Prec> {
     fn build(&self, app: &mut App) {
         app.init_asset::<asset::SolarSystem>()
             .init_asset_loader::<asset::SolarSystemLoader<Prec>>()
-            .register_type::<components::SceneRoot>()
+            .register_type::<components::SolarSystemRoot>()
             .register_type::<components::SceneCamera>()
             .register_type::<manifest::CameraConfig>()
-            .observe(on_scene_root_added::<Prec>);
+            .register_type::<BigSpaceScene<Prec>>()
+            .add_observer(hook_big_space_scene);
     }
+}
+
+fn hook_big_space_scene(trigger: Trigger<OnAdd, SolarSystemRoot>, mut commands: Commands) {
+    commands.entity(trigger.entity()).remove::<BigSpace>();
 }
 
 fn on_scene_root_added<Prec: GridPrecision>(
-    trigger: Trigger<OnAdd, components::SceneRoot>,
+    trigger: Trigger<SceneInstanceReady>,
     mut commands: Commands,
+    q_children: Query<&Children, With<BigSpace>>,
 ) {
     debug!("Add scene root to {}", trigger.entity());
     let entity = trigger.entity();
+    for &entity in q_children.children(entity) {
+        commands.entity(entity).remove::<BigSpace>();
+    }
     commands
         .entity(entity)
-        .add(|entity: Entity, world: &mut World| {
+        .queue(|entity: Entity, world: &mut World| {
             world
                 .entity_mut(entity)
-                .remove::<BigSpace>()
                 .insert((Transform::default(), GridCell::<Prec>::default()));
         });
-}
-
-#[derive(Bundle, Default)]
-pub struct SolarSystemSceneBundle<Prec: GridPrecision> {
-    pub scene: SceneBundle,
-    pub reference_frame: ReferenceFrame<Prec>,
-    pub root: BigSpace,
-}
-
-impl<Prec: GridPrecision> SolarSystemSceneBundle<Prec> {
-    pub fn from_scene(scene: Handle<Scene>, settings: &SolarSystemLoaderSettings) -> Self {
-        Self {
-            scene: SceneBundle { scene, ..default() },
-            reference_frame: ReferenceFrame::new(
-                settings.cell_length,
-                settings.switching_threshold,
-            ),
-            ..default()
-        }
-    }
-
-    pub fn from_path(
-        asset_server: &AssetServer,
-        path: impl fmt::Display,
-        settings: &SolarSystemLoaderSettings,
-    ) -> Self {
-        Self::from_scene(asset_server.load(format!("{path}#Scene")), settings)
-    }
 }

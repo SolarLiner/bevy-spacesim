@@ -20,9 +20,13 @@ use solar_system::scene::distance::{Distance, DistanceUnit};
 use starrynight::Star;
 use std::ops;
 
+mod inspector;
 mod planets;
 
-pub struct UiPlugin;
+#[derive(Default)]
+pub struct UiPlugin {
+    pub with_inspector: bool,
+}
 
 impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
@@ -40,6 +44,10 @@ impl Plugin for UiPlugin {
             .add_plugins(planets::PlanetsPlugin)
             .init_resource::<UiState>()
             .add_systems(Update, ui);
+
+        if self.with_inspector {
+            app.add_plugins(inspector::Plugin);
+        }
     }
 }
 
@@ -142,7 +150,7 @@ impl<'w, 's> UiSystems<'w, 's> {
                 for (e, s) in planets {
                     if ui.button(s).clicked() {
                         if let Ok(entity) = self.q_camera_entity.get_single() {
-                            self.commands.entity(entity).add(Reparent(e));
+                            self.commands.entity(entity).queue(Reparent(e));
                         }
                     }
                 }
@@ -298,7 +306,7 @@ impl<'w, 's> UiSystems<'w, 's> {
                     let name = name
                         .map(|name| name.to_string())
                         .unwrap_or_else(|| "Unknown Body".to_string());
-                    let Some(viewport) =
+                    let Ok(viewport) =
                         camera.world_to_viewport(cam_transform, planet_transform.translation())
                     else {
                         continue;
@@ -319,7 +327,7 @@ impl<'w, 's> UiSystems<'w, 's> {
                     const CIRCLE_SIZE: f32 = 3.0;
                     const TEXT_POS: f32 = CIRCLE_SIZE + 3.0;
 
-                    let Some(viewport) =
+                    let Ok(viewport) =
                         camera.world_to_viewport(cam_transform, transform.translation())
                     else {
                         continue;

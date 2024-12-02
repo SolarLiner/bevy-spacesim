@@ -21,7 +21,7 @@ impl Plugin for MjdPlugin {
 }
 
 #[derive(Debug, Copy, Clone, Deref, Resource, Reflect)]
-#[reflect_value]
+#[reflect(opaque)]
 pub struct Mjd(DateTime<Utc>);
 
 impl fmt::Display for Mjd {

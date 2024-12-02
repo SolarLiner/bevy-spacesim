@@ -285,7 +285,7 @@ mod tests {
             value: 1.23,
             prefix: Some(SiPrefix::Kilo),
         };
-        assert_eq!(si_prefixed.to_string(), "1.23k");
+        assert_eq!(si_prefixed.to_string(), "1.23 k");
 
         let si_prefixed = SiPrefixed {
             value: 1.23,

@@ -41,19 +41,16 @@ pub fn spawn<Prec: big_space::precision::GridPrecision>(
         PlanetaryBody,
         rotation_speed,
         Name::new(name.clone()),
-        VisibilityBundle::default(),
+        Visibility::Visible,
     ));
     commands
         .spawn_spatial((
             Name::new(format!("{} (Spatial)", name)),
             GridCell::<Prec>::default(),
-            PbrBundle {
-                mesh,
-                material,
-                transform: Transform::from_scale(Vec3::splat(radius))
-                    .with_rotation(Quat::from_rotation_x(inclination_deg.to_radians())),
-                ..Default::default()
-            },
+            Mesh3d(mesh),
+            MeshMaterial3d(material),
+            Transform::from_scale(Vec3::splat(radius))
+                .with_rotation(Quat::from_rotation_x(inclination_deg.to_radians())),
         ))
         .id()
 }
@@ -63,6 +60,6 @@ pub fn rotation_speed_system(
     mut q: Query<(&mut Transform, &RotationSpeed)>,
 ) {
     for (mut transform, day) in &mut q {
-        transform.rotate_local_y(time.delta_seconds() * day.0)
+        transform.rotate_local_y(time.delta_secs() * day.0)
     }
 }

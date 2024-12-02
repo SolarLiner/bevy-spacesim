@@ -36,12 +36,12 @@ impl Plugin for LensFlarePlugin {
         embedded_asset!(app, "shaders/lens_flare/main.wgsl");
         embedded_asset!(app, "shaders/lens_flare/mixer.wgsl");
         app.add_plugins((
-            ExtractComponentPlugin::<LensFlareSettings>::default(),
-            UniformComponentPlugin::<LensFlareSettings>::default(),
+            ExtractComponentPlugin::<LensFlare>::default(),
+            UniformComponentPlugin::<LensFlare>::default(),
             view_target::ViewTargetNodePlugin,
             kawase::KawasePlugin,
         ))
-        .register_type::<LensFlareSettings>();
+        .register_type::<LensFlare>();
 
         // We need to get the render app from the main app
         let Some(render_app) = app.get_sub_app_mut(RenderApp) else {
@@ -101,26 +101,12 @@ impl Plugin for LensFlarePlugin {
 // This is the component that will get passed to the shader
 #[derive(Component, Default, Clone, Copy, ExtractComponent, ShaderType, Reflect)]
 #[reflect(Component)]
-pub struct LensFlareSettings {
+#[require(KawaseMarker)]
+pub struct LensFlare {
     pub intensity: f32,
     // WebGL2 structs must be 16 byte aligned.
     #[cfg(feature = "webgl2")]
     _webgl2_padding: Vec3,
-}
-
-#[derive(Bundle)]
-pub struct LensFlareBundle {
-    pub settings: LensFlareSettings,
-    pub marker: KawaseMarker,
-}
-
-impl From<LensFlareSettings> for LensFlareBundle {
-    fn from(value: LensFlareSettings) -> Self {
-        Self {
-            settings: value,
-            marker: KawaseMarker,
-        }
-    }
 }
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone, RenderLabel)]
@@ -135,8 +121,8 @@ pub enum LensFlareLabel {
 struct GhostsNode {
     query_state: QueryState<(
         Read<GhostTextures>,
-        Read<LensFlareSettings>,
-        Read<DynamicUniformIndex<LensFlareSettings>>,
+        Read<LensFlare>,
+        Read<DynamicUniformIndex<LensFlare>>,
     )>,
 }
 
@@ -203,7 +189,7 @@ impl render_graph::Node for GhostsNode {
         };
 
         // Get the settings uniform binding
-        let settings_uniforms = world.resource::<ComponentUniforms<LensFlareSettings>>();
+        let settings_uniforms = world.resource::<ComponentUniforms<LensFlare>>();
         let Some(settings_binding) = settings_uniforms.uniforms().binding() else {
             warn_once!("Render camera not properly setup: missing uniform bindings");
             return Ok(());
@@ -281,7 +267,7 @@ impl FromWorld for GhostPipeline {
                     // The sampler
                     sampler(SamplerBindingType::Filtering),
                     // The settings uniform that will control the effect
-                    uniform_buffer::<LensFlareSettings>(true),
+                    uniform_buffer::<LensFlare>(true),
                 ),
             ),
         );
@@ -324,6 +310,7 @@ impl FromWorld for GhostPipeline {
                 depth_stencil: None,
                 multisample: MultisampleState::default(),
                 push_constant_ranges: vec![],
+                zero_initialize_workgroup_memory: false,
             });
 
         Self {
@@ -343,7 +330,7 @@ fn prepare_lensflare_textures(
     render_device: Res<RenderDevice>,
     mut texture_cache: ResMut<TextureCache>,
     mut commands: Commands,
-    q: Query<(Entity, &ExtractedCamera), With<LensFlareSettings>>,
+    q: Query<(Entity, &ExtractedCamera), With<LensFlare>>,
 ) {
     for (entity, camera) in &q {
         let Some(size) = camera.physical_viewport_size else {
@@ -374,7 +361,7 @@ struct MixerNode {
     query_state: QueryState<(
         Read<ViewTarget>,
         Read<MixerPipelineSpecialized>,
-        Read<DynamicUniformIndex<LensFlareSettings>>,
+        Read<DynamicUniformIndex<LensFlare>>,
     )>,
 }
 
@@ -418,7 +405,7 @@ impl render_graph::Node for MixerNode {
             return Ok(());
         };
 
-        let component_uniforms = world.resource::<ComponentUniforms<LensFlareSettings>>();
+        let component_uniforms = world.resource::<ComponentUniforms<LensFlare>>();
         let Some(binding) = component_uniforms.uniforms().binding() else {
             warn_once!("LensFlare Mixer Node not set up properly: missing uniform bindings");
             return Ok(());
@@ -494,6 +481,7 @@ impl SpecializedRenderPipeline for MixerPipeline {
             primitive: Default::default(),
             depth_stencil: None,
             multisample: Default::default(),
+            zero_initialize_workgroup_memory: false,
         }
     }
 }
@@ -509,7 +497,7 @@ impl FromWorld for MixerPipeline {
                     texture_2d(TextureSampleType::Float { filterable: true }),
                     texture_2d(TextureSampleType::Float { filterable: true }),
                     sampler(SamplerBindingType::Filtering),
-                    uniform_buffer::<LensFlareSettings>(true),
+                    uniform_buffer::<LensFlare>(true),
                 ),
             ),
         );
@@ -531,7 +519,7 @@ fn prepare_lensflare_mixer_pipeline(
     pipeline_cache: Res<PipelineCache>,
     pipeline: Res<MixerPipeline>,
     mut commands: Commands,
-    q: Query<(Entity, &ExtractedCamera), With<LensFlareSettings>>,
+    q: Query<(Entity, &ExtractedCamera), With<LensFlare>>,
 ) {
     for (entity, camera) in &q {
         commands.entity(entity).insert(MixerPipelineSpecialized(

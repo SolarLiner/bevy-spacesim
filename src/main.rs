@@ -1,10 +1,11 @@
 mod ui;
 
-use bevy::core_pipeline::auto_exposure::AutoExposureSettings;
-use bevy::core_pipeline::bloom::BloomSettings;
+use bevy::core_pipeline::auto_exposure::{AutoExposure, AutoExposureSettings};
+use bevy::core_pipeline::bloom::{Bloom, BloomSettings};
 use bevy::core_pipeline::core_3d::graph::Core3d;
-use bevy::core_pipeline::experimental::taa::TemporalAntiAliasBundle;
+use bevy::core_pipeline::experimental::taa::{TemporalAntiAliasBundle, TemporalAntiAliasing};
 use bevy::core_pipeline::motion_blur::MotionBlur;
+use bevy::core_pipeline::post_process::ChromaticAberration;
 use bevy::ecs::system::EntityCommand;
 use bevy::prelude::*;
 use bevy::render::camera::Exposure;
@@ -14,11 +15,12 @@ use bevy::window::WindowResolution;
 use bevy_blur_regions::{BlurRegionsCamera, BlurRegionsLabel};
 use bevy_inspector_egui::DefaultInspectorConfigPlugin;
 use big_space::{BigSpace, FloatingOrigin, ReferenceFrame};
-use pan_orbit::components::{PanOrbitCameraBundle, PanOrbitState};
+use pan_orbit::components::{PanOrbitCamera, PanOrbitState};
 use pan_orbit::PanOrbitCameraPlugin;
-use postprocessing::lens_flares::{LensFlareBundle, LensFlareLabel, LensFlareSettings};
-use solar_system::scene::components::SceneCamera;
-use solar_system::scene::{CameraConfig, SolarSystemLoaderSettings, SolarSystemSceneBundle};
+use postprocessing::lens_flares::{LensFlare, LensFlareLabel};
+use solar_system::scene::components::{BigSpaceScene, SceneCamera};
+use solar_system::scene::{CameraConfig, SolarSystemSettings};
+use starrynight::StarryNight;
 
 type SolarSystemPrec = i32;
 type StarsPrec = SolarSystemPrec;
@@ -41,17 +43,17 @@ fn main() {
         big_space::BigSpacePlugin::<SolarSystemPrec>::new(false),
         DefaultInspectorConfigPlugin,
         PanOrbitCameraPlugin::<SolarSystemPrec>::default(),
-        // WorldInspectorPlugin::default(),
     ))
     .add_plugins((
         solar_system::SolarSystemPlugin::<SolarSystemPrec>::default(),
         starrynight::StarryNightPlugin::<StarsPrec>::default(),
         postprocessing::lens_flares::LensFlarePlugin,
-        ui::UiPlugin,
+        ui::UiPlugin::default(),
     ))
     .insert_resource(ClearColor(Color::BLACK))
     .add_systems(Startup, setup)
-    .observe(on_add_scene_camera);
+    .add_observer(on_add_scene_camera)
+    .add_observer(debug_show_named_entities);
 
     app.get_sub_app_mut(RenderApp)
         .unwrap()
@@ -64,23 +66,24 @@ fn main() {
     app.run();
 }
 
+fn debug_show_named_entities(trigger: Trigger<OnAdd, Name>, q: Query<&Name>) {
+    let name = q.get(trigger.entity()).unwrap();
+    debug!("{entity}: {name}", entity = trigger.entity());
+}
+
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
-    commands.spawn(SolarSystemSceneBundle::<SolarSystemPrec>::from_path(
-        &asset_server,
-        "scenes/solar.system.yaml",
-        &SolarSystemLoaderSettings {
+    commands.spawn((
+        SceneRoot(asset_server.load("scenes/solar.system.yaml#Scene")),
+        SolarSystemSettings {
             cell_length: 10_000.0,
             switching_threshold: 100.0,
         },
+        BigSpaceScene::<SolarSystemPrec>::default(),
     ));
     commands.spawn((
-        SceneBundle {
-            scene: asset_server.load("hyg_v38.csv"),
-            ..default()
-        },
+        SceneRoot(asset_server.load("hyg_v38.csv#Scene")),
         ReferenceFrame::<StarsPrec>::new(1e9, 100.0),
-        BigSpace::default(),
-        starrynight::SceneRoot,
+        StarryNight::<StarsPrec>::default(),
     ));
 }
 
@@ -88,40 +91,42 @@ fn on_add_scene_camera(trigger: Trigger<OnAdd, SceneCamera>, mut commands: Comma
     debug!("Add scene camera to {}", trigger.entity());
     commands
         .entity(trigger.entity())
-        .add(|entity: Entity, world: &mut World| {
+        .queue(|entity: Entity, world: &mut World| {
             let mut entity_mut = world.entity_mut(entity);
             let cam_config = entity_mut.get::<CameraConfig>().unwrap();
             entity_mut.insert((
                 FloatingOrigin,
-                PanOrbitCameraBundle {
-                    camera: Camera3dBundle {
-                        camera: Camera {
-                            hdr: true,
-                            ..default()
-                        },
-                        exposure: Exposure::SUNLIGHT,
-                        ..default()
-                    },
-                    state: PanOrbitState {
-                        radius: cam_config.radius.as_base_value() as _,
-                        pitch: cam_config.rotation[0],
-                        yaw: cam_config.rotation[1],
-                        ..default()
-                    },
+                PanOrbitCamera::default(),
+                PanOrbitState {
+                    radius: cam_config.radius.as_base_value() as _,
+                    pitch: cam_config.rotation[0],
+                    yaw: cam_config.rotation[1],
                     ..default()
                 },
-                BloomSettings {
+                Camera3d::default(),
+                Camera {
+                    hdr: true,
+                    ..default()
+                },
+                Exposure::SUNLIGHT,
+                Msaa::Sample4,
+                Bloom {
                     intensity: 0.05,
                     ..default()
                 },
-                AutoExposureSettings::default(),
-                TemporalAntiAliasBundle::default(),
+                AutoExposure::default(),
+                TemporalAntiAliasing::default(),
                 MotionBlur::default(),
                 BlurRegionsCamera::default(),
-                LensFlareBundle::from(LensFlareSettings {
+                LensFlare {
                     intensity: 1e-5,
                     ..default()
-                }),
+                },
+                ChromaticAberration {
+                    intensity: 3e-3,
+                    max_samples: 3,
+                    ..default()
+                },
             ));
         });
 }

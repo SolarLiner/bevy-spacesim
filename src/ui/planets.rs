@@ -1,5 +1,5 @@
+use bevy::ecs::entity::EntityHashMap;
 use bevy::prelude::*;
-use bevy::utils::EntityHashMap;
 use solar_system::body::PlanetaryBody;
 use std::collections::HashMap;
 
@@ -8,8 +8,8 @@ pub(super) struct PlanetsPlugin;
 impl Plugin for PlanetsPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<Planets>()
-            .observe(on_added_planet)
-            .observe(on_removed_planet);
+            .add_observer(on_added_planet)
+            .add_observer(on_removed_planet);
     }
 }
 
@@ -32,7 +32,7 @@ fn on_removed_planet(trigger: Trigger<OnRemove, PlanetaryBody>, mut planets: Res
 #[derive(Debug, Default, Resource, Reflect)]
 #[reflect(Resource)]
 pub(super) struct Planets {
-    index: EntityHashMap<Entity, String>,
+    index: EntityHashMap<String>,
     rev_index: HashMap<String, Entity>,
     order: Vec<Entity>,
 }

@@ -12,20 +12,19 @@ use bevy::prelude::*;
 use bevy::utils::ConditionalSendFuture;
 use big_space::precision::GridPrecision;
 use big_space::{
-    BigReferenceFrameBundle, BigSpaceCommands, ReferenceFrame, ReferenceFrameCommands,
+    BigReferenceFrameBundle, BigSpaceCommands, GridCell, ReferenceFrame, ReferenceFrameCommands,
 };
 use serde::{Deserialize, Serialize};
 use std::marker::PhantomData;
 
-pub struct SolarSystemLoader<Prec: GridPrecision>(PhantomData<Prec>);
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct SolarSystemLoaderSettings {
+#[derive(Debug, Serialize, Deserialize, Component, Reflect)]
+#[reflect(Component)]
+pub struct SolarSystemSettings {
     pub cell_length: f32,
     pub switching_threshold: f32,
 }
 
-impl Default for SolarSystemLoaderSettings {
+impl Default for SolarSystemSettings {
     fn default() -> Self {
         Self {
             cell_length: 10_000.0,
@@ -33,6 +32,8 @@ impl Default for SolarSystemLoaderSettings {
         }
     }
 }
+
+pub struct SolarSystemLoader<Prec: GridPrecision>(PhantomData<Prec>);
 
 impl<Prec: GridPrecision> Default for SolarSystemLoader<Prec> {
     fn default() -> Self {
@@ -42,14 +43,14 @@ impl<Prec: GridPrecision> Default for SolarSystemLoader<Prec> {
 
 impl<Prec: GridPrecision> AssetLoader for SolarSystemLoader<Prec> {
     type Asset = SolarSystem;
-    type Settings = SolarSystemLoaderSettings;
+    type Settings = SolarSystemSettings;
     type Error = error::SceneLoadError;
 
-    fn load<'a>(
-        &'a self,
-        reader: &'a mut Reader,
-        settings: &'a Self::Settings,
-        load_context: &'a mut LoadContext,
+    fn load(
+        &self,
+        reader: &mut dyn Reader,
+        settings: &Self::Settings,
+        load_context: &mut LoadContext,
     ) -> impl ConditionalSendFuture<Output = Result<Self::Asset, Self::Error>> {
         async move {
             let input = {
@@ -130,7 +131,7 @@ fn load_planet_config<Prec: GridPrecision>(
     world: &mut World,
     load_context: &mut LoadContext,
     root: &Planet,
-    settings: &SolarSystemLoaderSettings,
+    settings: &SolarSystemSettings,
 ) {
     let sphere = load_context.add_labeled_asset(
         "Sphere".to_string(),
@@ -140,7 +141,12 @@ fn load_planet_config<Prec: GridPrecision>(
     commands.spawn_big_space(
         ReferenceFrame::<Prec>::new(settings.cell_length, settings.switching_threshold),
         |root_frame| {
-            root_frame.insert((Name::new("Root Frame"), components::SceneRoot));
+            root_frame.insert((
+                Name::new("Root Frame"),
+                components::SolarSystemRoot,
+                GridCell::<Prec>::default(),
+                Transform::default(),
+            ));
             load_planet_config_inner(&sphere, root_frame, root, true);
         },
     );
@@ -162,8 +168,8 @@ fn load_planet_config_inner<Prec: GridPrecision>(
     frame.with_frame_default(|planet| {
         planet.insert((
             Name::new(format!("{} (Planet Frame)", config.name)),
-            VisibilityBundle::default(),
-            TransformBundle::from_transform(Transform::from_translation(local_pos)),
+            Visibility::Visible,
+            Transform::from_translation(local_pos),
             cell,
         ));
         planet.with_frame_default(|rot| {

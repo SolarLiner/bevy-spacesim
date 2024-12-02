@@ -234,8 +234,12 @@ fn draw_orbits(
             elements.semi_major_axis as f32,
             (elements.semi_major_axis * (1.0 - elements.eccentricity.powi(2)).sqrt()) as f32,
         );
-        g.ellipse(position, rotation, half_size, Color::srgb(1.0, 1.0, 0.0))
-            .resolution(64);
+        g.ellipse(
+            Isometry3d::new(position, rotation),
+            half_size,
+            Color::srgb(1.0, 1.0, 0.0),
+        )
+        .resolution(64);
     }
 }
 

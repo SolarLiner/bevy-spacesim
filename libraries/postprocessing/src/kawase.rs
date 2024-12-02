@@ -50,7 +50,7 @@ impl Plugin for KawasePlugin {
     }
 }
 
-#[derive(Debug, Copy, Clone, Component, ExtractComponent)]
+#[derive(Debug, Copy, Clone, Default, Component, ExtractComponent)]
 pub struct KawaseMarker;
 
 #[derive(Component)]
@@ -194,6 +194,7 @@ impl FromWorld for KawasePassPipeline {
                     depth_stencil: None,
                     multisample: MultisampleState::default(),
                     push_constant_ranges: vec![],
+                    zero_initialize_workgroup_memory: false,
                 });
 
         Self {

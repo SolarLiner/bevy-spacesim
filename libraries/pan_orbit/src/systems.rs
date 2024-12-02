@@ -1,11 +1,11 @@
 use bevy::prelude::*;
 
-use crate::components::{PanOrbitSettings, PanOrbitState};
+use crate::components::{PanOrbitCamera, PanOrbitState};
+use crate::events::RecenterCamera;
 use bevy::input::mouse::{MouseMotion, MouseScrollUnit, MouseWheel};
 use big_space::precision::GridPrecision;
 use big_space::{GridCell, ReferenceFrame};
 use std::f32::consts::{FRAC_PI_2, PI, TAU};
-use crate::events::RecenterCamera;
 
 #[derive(Default)]
 pub(crate) struct BlockedInputs {
@@ -35,7 +35,7 @@ pub(crate) fn pan_orbit_camera<Prec: GridPrecision>(
     mut evr_motion: EventReader<MouseMotion>,
     mut evr_scroll: EventReader<MouseWheel>,
     mut q_camera: Query<(
-        &PanOrbitSettings,
+        &PanOrbitCamera,
         &mut PanOrbitState,
         &mut Transform,
         Option<&mut GridCell<Prec>>,
@@ -183,5 +183,5 @@ pub fn recenter_camera(_: Trigger<RecenterCamera>, mut q_state: Query<&mut PanOr
     for mut state in &mut q_state {
         debug!("Recentering camera");
         state.center = Vec3::ZERO;
-    }    
+    }
 }

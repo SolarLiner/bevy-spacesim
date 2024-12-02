@@ -8,8 +8,11 @@ use bevy::tasks::futures_lite::StreamExt;
 use bevy::utils::ConditionalSendFuture;
 use big_space::precision::GridPrecision;
 use big_space::{BigSpace, GridCell, ReferenceFrame};
-use std::convert::Infallible;
+use csv_async::StringRecord;
 use std::marker::PhantomData;
+use std::num::ParseFloatError;
+use std::str::FromStr;
+use thiserror::Error;
 
 pub struct StarryNightPlugin<Prec: GridPrecision>(PhantomData<Prec>);
 
@@ -22,45 +25,64 @@ impl<Prec: GridPrecision> Default for StarryNightPlugin<Prec> {
 impl<Prec: GridPrecision> Plugin for StarryNightPlugin<Prec> {
     fn build(&self, app: &mut App) {
         app.init_asset_loader::<StarsAssetLoader>()
+            .init_asset::<Stars>()
+            .register_type::<Stars>()
             .register_type::<Star>()
             .init_resource::<StaticAssets>()
-            .add_systems(Update, spawn_stars::<Prec>)
-            .observe(on_scene_root_added::<Prec>);
+            .add_systems(Update, spawn_stars::<Prec>);
     }
+}
+
+#[derive(Debug, Error)]
+pub enum InvalidCatalogFormat {
+    #[error("Invalid catalog file: {0}")]
+    ParseError(#[from] csv_async::Error),
+    #[error("Invalid catalog format: expected at least 19 columns, found {num_columns}")]
+    MissingColumns { num_columns: usize },
+    #[error("Invalid catalog format column {column}: {source}")]
+    FieldParseError {
+        source: ParseFloatError,
+        column: usize,
+    },
 }
 
 #[derive(Default)]
 pub struct StarsAssetLoader;
 
 impl AssetLoader for StarsAssetLoader {
-    type Asset = Scene;
+    type Asset = Stars;
     type Settings = ();
-    type Error = Infallible;
+    type Error = InvalidCatalogFormat;
 
-    fn load<'a>(
-        &'a self,
-        reader: &'a mut Reader,
-        _settings: &'a Self::Settings,
-        _load_context: &'a mut LoadContext,
+    fn load(
+        &self,
+        reader: &mut dyn Reader,
+        _settings: &Self::Settings,
+        load_context: &mut LoadContext,
     ) -> impl ConditionalSendFuture<Output = Result<Self::Asset, Self::Error>> {
         async move {
             let reader = csv_async::AsyncReader::from_reader(reader);
-            let world = reader
-                .into_records()
-                .skip(2)
-                .filter_map(|record| {
-                    const COL_NAME_BF: usize = 5;
-                    const COL_NAME_PROPER: usize = 6;
-                    const COL_RIGHT_ASCENSION: usize = 7;
-                    const COL_DECLINATION: usize = 8;
-                    const COL_DISTANCE: usize = 9;
-                    const COL_MAGNITUDE: usize = 13;
-                    const COL_ABSOLUTE_MAGNITUDE: usize = 14;
-                    const COL_COLOR_INDEX: usize = 16;
-                    const COL_X: usize = 17;
-                    const COL_Y: usize = 18;
-                    const COL_Z: usize = 19;
-                    record.ok().and_then(|record| {
+            let mut stream = reader.into_records().skip(2).map(|record| {
+                const COL_NAME_BF: usize = 5;
+                const COL_NAME_PROPER: usize = 6;
+                const COL_RIGHT_ASCENSION: usize = 7;
+                const COL_DECLINATION: usize = 8;
+                const COL_DISTANCE: usize = 9;
+                const COL_MAGNITUDE: usize = 13;
+                const COL_ABSOLUTE_MAGNITUDE: usize = 14;
+                const COL_COLOR_INDEX: usize = 16;
+                const COL_X: usize = 17;
+                const COL_Y: usize = 18;
+                const COL_Z: usize = 19;
+                record
+                    .map_err(InvalidCatalogFormat::ParseError)
+                    .and_then(|rec| {
+                        let len = rec.len();
+                        (len > COL_Z)
+                            .then_some(rec)
+                            .ok_or(InvalidCatalogFormat::MissingColumns { num_columns: len })
+                    })
+                    .and_then(|record| {
                         let name = if !record[COL_NAME_PROPER].is_empty() {
                             Some(record[COL_NAME_PROPER].to_string())
                         } else if !record[COL_NAME_BF].is_empty() {
@@ -68,37 +90,55 @@ impl AssetLoader for StarsAssetLoader {
                         } else {
                             None
                         };
-                        Some(Star {
+                        Ok(Star {
                             name,
-                            right_ascension: record[COL_RIGHT_ASCENSION].parse().ok()?,
-                            declination: record[COL_DECLINATION].parse().ok()?,
-                            relative_magnitude: record[COL_MAGNITUDE].parse().ok()?,
-                            absolute_magnitude: record[COL_ABSOLUTE_MAGNITUDE].parse().ok()?,
-                            color_index: record[COL_COLOR_INDEX].parse().ok()?,
+                            right_ascension: parse_record(&record, COL_RIGHT_ASCENSION)?,
+                            declination: parse_record(&record, COL_DECLINATION)?,
+                            relative_magnitude: parse_record(&record, COL_MAGNITUDE)?,
+                            absolute_magnitude: parse_record(&record, COL_ABSOLUTE_MAGNITUDE)?,
+                            color_index: record[COL_COLOR_INDEX].parse().unwrap_or(0.0),
                             position: dvec3(
-                                record[COL_X].parse().ok()?,
-                                record[COL_Y].parse().ok()?,
-                                record[COL_Z].parse().ok()?,
+                                parse_record(&record, COL_X)?,
+                                parse_record(&record, COL_Y)?,
+                                parse_record(&record, COL_Z)?,
                             ),
-                            distance_parsecs: record[COL_DISTANCE].parse().ok()?,
+                            distance_parsecs: parse_record(&record, COL_DISTANCE)?,
                             color: Color::WHITE,
                         })
                     })
-                })
-                .filter(|star| star.relative_magnitude <= 3.0)
-                .fold(World::new(), |mut world, star| {
-                    world.spawn(star);
-                    world
-                })
-                .await;
-            Ok(Scene::new(world))
+            });
+            let mut world = World::new();
+            let mut stars = Vec::new();
+            while let Some(star) = stream.next().await {
+                let star = star?;
+                stars.push(star.clone());
+                if star.relative_magnitude >= 6.5 {
+                    continue;
+                }
+                world.spawn(star);
+            }
+
+            load_context.add_labeled_asset("Scene".to_string(), Scene::new(world));
+            Ok(Stars(stars))
         }
     }
 
     fn extensions(&self) -> &[&str] {
-        &[".csv"]
+        &["csv"]
     }
 }
+
+fn parse_record<T: FromStr<Err = ParseFloatError>>(
+    record: &StringRecord,
+    column: usize,
+) -> Result<T, InvalidCatalogFormat> {
+    record[column]
+        .parse()
+        .map_err(|source| InvalidCatalogFormat::FieldParseError { source, column })
+}
+
+#[derive(Debug, Clone, Asset, Reflect, Deref)]
+pub struct Stars(Vec<Star>);
 
 #[derive(Resource)]
 struct StaticAssets {
@@ -128,8 +168,6 @@ pub struct Star {
     pub color_index: f32,
     pub color: Color,
 }
-
-const PARSECS: f64 = 30856775814913673.0;
 
 impl Star {
     pub fn position_meters(&self) -> DVec3 {
@@ -253,24 +291,15 @@ fn blackbody_color(k: f32) -> Srgba {
     Srgba::new(r, g, b, 1.0)
 }
 
-#[derive(Component, Reflect)]
-#[reflect(Component)]
-pub struct SceneRoot;
+#[derive(Debug, Copy, Clone, Component, Reflect)]
+#[reflect(Component, opaque)]
+#[require(Transform, BigSpace, GridCell<Prec>)]
+pub struct StarryNight<Prec: GridPrecision>(PhantomData<Prec>);
 
-fn on_scene_root_added<Prec: GridPrecision>(
-    trigger: Trigger<OnAdd, SceneRoot>,
-    mut commands: Commands,
-) {
-    debug!("Add scene root to {}", trigger.entity());
-    let entity = trigger.entity();
-    commands
-        .entity(entity)
-        .add(|entity: Entity, world: &mut World| {
-            world
-                .entity_mut(entity)
-                .remove::<BigSpace>()
-                .insert((Transform::default(), GridCell::<Prec>::default()));
-        });
+impl<Prec: GridPrecision> Default for StarryNight<Prec> {
+    fn default() -> Self {
+        Self(PhantomData)
+    }
 }
 
 #[derive(Component)]
@@ -287,23 +316,19 @@ fn spawn_stars<Prec: GridPrecision>(
         let Ok(frame) = q_parent.get(**parent) else {
             continue;
         };
-        debug!("Add star {star:?}");
+        trace!("Add star {star:?}");
 
         let (cell, pos) = frame.translation_to_grid(star.position_meters());
 
         let mut entity_commands = commands.entity(entity);
         entity_commands.insert((
-            PbrBundle {
-                mesh: static_assets.sphere.clone(),
-                material: materials.add(StandardMaterial {
-                    emissive: star.material_emissive_color().into(),
-                    unlit: true,
-                    ..default()
-                }),
-                transform: Transform::from_translation(pos)
-                    .with_scale(Vec3::splat(star.mesh_scale())),
+            Mesh3d(static_assets.sphere.clone()),
+            MeshMaterial3d(materials.add(StandardMaterial {
+                emissive: star.material_emissive_color().into(),
+                unlit: true,
                 ..default()
-            },
+            })),
+            Transform::from_translation(pos).with_scale(Vec3::splat(star.mesh_scale())),
             cell,
             InsertedStar,
         ));
