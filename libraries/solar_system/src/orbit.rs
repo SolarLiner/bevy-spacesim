@@ -29,7 +29,7 @@ impl<Prec: GridPrecision> Plugin for OrbitPlugin<Prec> {
             .insert_resource(DrawOrbits(self.draw_orbits))
             .add_systems(
                 Update,
-                update_positions::<Prec>.run_if(resource_exists::<Time<Mjd>>.and_then(mjd_valid)),
+                update_positions::<Prec>.run_if(resource_exists::<Time<Mjd>>.and(mjd_valid)),
             )
             .add_systems(
                 PostUpdate,
@@ -280,7 +280,6 @@ mod tests {
     fn point_on_orbit_calculates_correctly() {
         let mjd = Mjd::zero();
         let orbit = orbit();
-        let t = 3.15576e7 / 2.0; // half a year
         let point = orbit.point_on_orbit(mjd).unwrap();
         assert_abs_diff_eq!(point.x, -1.0e11, epsilon = 1e6);
         assert_abs_diff_eq!(point.y, 0.0, epsilon = 1e6);

@@ -42,10 +42,6 @@ impl Planets {
         self.index.get(&entity).map(|s| s.as_str())
     }
 
-    pub(super) fn get_entity(&self, name: &str) -> Option<Entity> {
-        self.rev_index.get(name).copied()
-    }
-
     pub(super) fn iter(&self) -> impl Iterator<Item = (Entity, &str)> {
         self.order
             .iter()

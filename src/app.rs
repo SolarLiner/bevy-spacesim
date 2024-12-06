@@ -31,18 +31,10 @@ use starrynight::StarryNight;
 type SolarSystemPrec = i32;
 type StarsPrec = SolarSystemPrec;
 
+#[derive(Default)]
 pub(crate) struct AppSettings {
     pub(crate) resolution: WindowResolution,
     pub(crate) with_inspector: bool,
-}
-
-impl Default for AppSettings {
-    fn default() -> Self {
-        Self {
-            resolution: WindowResolution::default(),
-            with_inspector: false,
-        }
-    }
 }
 
 pub fn get_app(settings: AppSettings) -> App {
@@ -101,9 +93,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 }
 
 fn on_add_sun(trigger: Trigger<OnAdd, Sun>, mut commands: Commands) {
-    commands
-        .entity(trigger.entity())
-        .insert(LensFlareTarget::default());
+    commands.entity(trigger.entity()).insert(LensFlareTarget);
 }
 
 fn on_add_scene_camera(trigger: Trigger<OnAdd, SceneCamera>, mut commands: Commands) {

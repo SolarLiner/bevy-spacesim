@@ -29,7 +29,7 @@ fn inspector_ui(world: &mut World) {
             let Some((entity, mut lens_flare)) = world
                 .query::<(Entity, &mut LensFlare)>()
                 .iter_mut(world)
-                .map(|(e, c)| (e, c.clone()))
+                .map(|(e, c)| (e, *c))
                 .next()
             else {
                 ui.disable();

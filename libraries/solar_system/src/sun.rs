@@ -30,26 +30,24 @@ struct Sunlight;
 fn setup_sunlight(mut commands: Commands) {
     commands.spawn((
         Sunlight,
-        DirectionalLightBundle {
-            directional_light: DirectionalLight {
-                color: Color::WHITE,
-                illuminance: 120e3,
-                shadows_enabled: true,
-                ..Default::default()
-            },
-            cascade_shadow_config: CascadeShadowConfigBuilder {
-                num_cascades: 4,
-                minimum_distance: 0.1,
-                maximum_distance: 10_000.0,
-                first_cascade_far_bound: 100.0,
-                overlap_proportion: 0.2,
-            }
-            .build(),
+        DirectionalLight {
+            color: Color::WHITE,
+            illuminance: 120e3,
+            shadows_enabled: true,
             ..Default::default()
         },
+        CascadeShadowConfigBuilder {
+            num_cascades: 4,
+            minimum_distance: 0.1,
+            maximum_distance: 10_000.0,
+            first_cascade_far_bound: 100.0,
+            overlap_proportion: 0.2,
+        }
+        .build(),
     ));
 }
 
+#[allow(clippy::type_complexity)]
 fn sun_lighting(
     mut queries: ParamSet<(
         Query<(&mut Transform, &mut GlobalTransform), With<Sunlight>>,

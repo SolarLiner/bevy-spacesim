@@ -96,7 +96,7 @@ fn ui(mut this: UiSystems, mut q_egui: Query<&mut EguiContext, With<PrimaryWindo
     this.toplevel(ctx);
 }
 
-impl<'w, 's> UiSystems<'w, 's> {
+impl UiSystems<'_, '_> {
     fn toplevel(&mut self, ctx: &egui::Context) {
         self.topbar(ctx);
         self.date_time_window(ctx);

@@ -4,10 +4,10 @@ use big_space::precision::GridPrecision;
 use std::marker::PhantomData;
 
 pub mod body;
+pub mod mjd;
 pub mod orbit;
 pub mod scene;
 pub mod sun;
-pub mod mjd;
 
 pub struct SolarSystemPlugin<Prec: GridPrecision>(PhantomData<Prec>);
 

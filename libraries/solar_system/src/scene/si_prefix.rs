@@ -164,7 +164,7 @@ impl<'de> serde::Deserialize<'de> for SiPrefixed {
         D: Deserializer<'de>,
     {
         struct Visitor;
-        impl<'de> serde::de::Visitor<'de> for Visitor {
+        impl serde::de::Visitor<'_> for Visitor {
             type Value = SiPrefixed;
 
             fn expecting(&self, formatter: &mut Formatter) -> fmt::Result {

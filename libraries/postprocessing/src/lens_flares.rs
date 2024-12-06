@@ -1,7 +1,7 @@
 use bevy::asset::embedded_asset;
 use bevy::core_pipeline::core_3d::graph::{Core3d, Node3d};
 use bevy::core_pipeline::fullscreen_vertex_shader::fullscreen_shader_vertex_state;
-use bevy::core_pipeline::prepass::{DepthPrepass, ViewPrepassTextures};
+use bevy::core_pipeline::prepass::DepthPrepass;
 use bevy::ecs::query::QueryItem;
 use bevy::ecs::system::lifetimeless::Read;
 use bevy::prelude::*;
@@ -12,21 +12,17 @@ use bevy::render::extract_component::{
 use bevy::render::render_graph::{
     NodeRunError, RenderGraphApp, RenderGraphContext, RenderLabel, ViewNodeRunner,
 };
-use bevy::render::render_resource::binding_types::{
-    sampler, texture_2d, texture_depth_2d, texture_depth_2d_multisampled, uniform_buffer,
-};
+use bevy::render::render_resource::binding_types::{sampler, texture_2d, uniform_buffer};
 use bevy::render::render_resource::{
-    AddressMode, BindGroup, BindGroupEntries, BindGroupLayout, BindGroupLayoutEntries,
-    CachedPipeline, CachedPipelineState, CachedRenderPipelineId, ColorTargetState, ColorWrites,
-    DynamicUniformBuffer, FilterMode, FragmentState, MultisampleState, Operations, PipelineCache,
-    PipelineLayout, PipelineLayoutDescriptor, PrimitiveState, RawRenderPipelineDescriptor,
-    RenderPassColorAttachment, RenderPassDescriptor, RenderPipelineDescriptor, Sampler,
-    SamplerBindingType, SamplerDescriptor, ShaderStages, ShaderType, SpecializedRenderPipeline,
-    SpecializedRenderPipelines, TextureFormat, TextureSampleType, TextureViewDescriptor,
-    VertexState,
+    BindGroupEntries, BindGroupLayout, BindGroupLayoutEntries, CachedPipelineState,
+    CachedRenderPipelineId, ColorTargetState, ColorWrites, FilterMode, FragmentState,
+    MultisampleState, Operations, PipelineCache, RenderPassColorAttachment, RenderPassDescriptor,
+    RenderPipelineDescriptor, Sampler, SamplerBindingType, SamplerDescriptor, ShaderStages,
+    ShaderType, SpecializedRenderPipeline, SpecializedRenderPipelines, TextureFormat,
+    TextureSampleType,
 };
 use bevy::render::renderer::{RenderContext, RenderDevice};
-use bevy::render::view::{ViewDepthTexture, ViewTarget};
+use bevy::render::view::ViewTarget;
 use bevy::render::{render_graph, Render, RenderApp, RenderSet};
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, RenderLabel)]
@@ -170,7 +166,6 @@ struct LensFlarePipeline {
     layout: BindGroupLayout,
     shader: Handle<Shader>,
     sampler_screen: Sampler,
-    sampler_depth: Sampler,
 }
 
 impl FromWorld for LensFlarePipeline {
@@ -196,13 +191,11 @@ impl FromWorld for LensFlarePipeline {
             mag_filter: FilterMode::Linear,
             ..default()
         });
-        let sampler_depth = render_device.create_sampler(&SamplerDescriptor { ..default() });
 
         Self {
             layout,
             shader,
             sampler_screen,
-            sampler_depth,
         }
     }
 }
@@ -237,6 +230,7 @@ impl SpecializedRenderPipeline for LensFlarePipeline {
     }
 }
 
+#[allow(clippy::type_complexity)]
 fn specialize_pipeline(
     pipeline_cache: Res<PipelineCache>,
     mut specialized_pipelines: ResMut<SpecializedRenderPipelines<LensFlarePipeline>>,

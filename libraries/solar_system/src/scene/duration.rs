@@ -1,7 +1,7 @@
-use std::fmt;
 use crate::scene::error::DurationFromStrError;
 use serde::de::Error;
 use serde::Deserializer;
+use std::fmt;
 use std::fmt::Formatter;
 use std::str::FromStr;
 
@@ -170,7 +170,7 @@ impl Duration {
         minutes: 0,
         seconds: 0f32,
     };
-    
+
     pub fn as_seconds(&self) -> f64 {
         self.days as f64 * 86400f64
             + self.hours as f64 * 3600f64
