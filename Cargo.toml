@@ -23,15 +23,16 @@ bevy = { workspace = true, features = ["serialize"] }
 bevy_blur_regions = { git = "https://github.com/SolarLiner/bevy_blur_regions.git", branch = "feat/bevy0.15", features = ["egui"] }
 bevy_egui.workspace = true
 bevy-inspector-egui = "0.28.0"
-bevy_mod_debugdump = { git = "https://github.com/jakobhellermann/bevy_mod_debugdump.git", optional = true }
+bevy_mod_debugdump = { git = "https://github.com/jakobhellermann/bevy_mod_debugdump.git" }
 big_space.workspace = true
 chrono.workspace = true
+clap = { version = "4.5.23", features = ["derive"] }
 egui = "0.29.1"
 egui_plot = "0.29.0"
+thiserror = "1.0.69"
 
 [features]
-dev = ["bevy/dynamic_linking", "bevy/bevy_dev_tools", "bevy/file_watcher", "bevy/embedded_watcher"]
-print-render-graph = ["dep:bevy_mod_debugdump"]
+dev = ["bevy/bevy_dev_tools", "bevy/file_watcher", "bevy/embedded_watcher"]
 
 [profile.dev]
 opt-level = 1

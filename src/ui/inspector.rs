@@ -2,8 +2,9 @@ use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 use bevy_blur_regions::EguiWindowBlurExt;
 use bevy_egui::EguiContext;
-use bevy_inspector_egui::bevy_inspector;
+use bevy_inspector_egui::{bevy_inspector, reflect_inspector};
 use egui::containers;
+use postprocessing::lens_flares::LensFlare;
 
 pub struct Plugin;
 
@@ -21,6 +22,30 @@ fn inspector_ui(world: &mut World) {
     else {
         return;
     };
+
+    containers::Window::new("Lens Flare")
+        .frame(super::default_blurry_frame())
+        .show_with_blur(ctx.get_mut(), |ui| {
+            let Some((entity, mut lens_flare)) = world
+                .query::<(Entity, &mut LensFlare)>()
+                .iter_mut(world)
+                .map(|(e, c)| (e, c.clone()))
+                .next()
+            else {
+                ui.disable();
+                ui.label("No Lens Flare");
+                return;
+            };
+            let changed = {
+                let type_registry = world.resource::<AppTypeRegistry>();
+                let type_registry = type_registry.read();
+                reflect_inspector::ui_for_value(&mut lens_flare, ui, &type_registry)
+            };
+
+            if changed {
+                world.entity_mut(entity).insert(lens_flare);
+            }
+        });
 
     containers::Window::new("Inspector")
         .frame(super::default_blurry_frame())
