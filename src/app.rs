@@ -118,13 +118,12 @@ fn on_add_scene_camera(trigger: Trigger<OnAdd, SceneCamera>, mut commands: Comma
                     ..default()
                 },
                 Exposure::SUNLIGHT,
-                Msaa::Off,
+                Msaa::Sample4,
                 Bloom {
                     intensity: 0.05,
                     ..default()
                 },
                 AutoExposure::default(),
-                TemporalAntiAliasing::default(),
                 MotionBlur::default(),
                 BlurRegionsCamera::default(),
                 LensFlare::default(),

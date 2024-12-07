@@ -158,7 +158,6 @@ pub struct LensFlareSettingsExtracted {
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 struct LensFlarePipelineKey {
     texture_format: TextureFormat,
-    msaa: u32,
 }
 
 #[derive(Resource)]
@@ -211,10 +210,7 @@ impl SpecializedRenderPipeline for LensFlarePipeline {
             vertex: fullscreen_shader_vertex_state(),
             primitive: Default::default(),
             depth_stencil: None,
-            multisample: MultisampleState {
-                count: key.msaa,
-                ..default()
-            },
+            multisample: MultisampleState::default(),
             fragment: Some(FragmentState {
                 shader: self.shader.clone(),
                 shader_defs: vec![],
@@ -249,7 +245,6 @@ fn specialize_pipeline(
     for (entity, msaa, view_target, specialized) in &mut q {
         let key = LensFlarePipelineKey {
             texture_format: view_target.main_texture_format(),
-            msaa: msaa.samples(),
         };
         debug!("Specialize pipeline {key:?}");
         if let Some(mut specialized) = specialized {
