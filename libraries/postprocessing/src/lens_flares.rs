@@ -235,14 +235,13 @@ fn specialize_pipeline(
     mut q: Query<
         (
             Entity,
-            &Msaa,
             Ref<ViewTarget>,
             Option<&mut LensFlarePipelineSpecialized>,
         ),
         With<LensFlareSettingsExtracted>,
     >,
 ) {
-    for (entity, msaa, view_target, specialized) in &mut q {
+    for (entity, view_target, specialized) in &mut q {
         let key = LensFlarePipelineKey {
             texture_format: view_target.main_texture_format(),
         };

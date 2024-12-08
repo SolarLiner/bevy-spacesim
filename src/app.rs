@@ -5,7 +5,6 @@ use bevy::color::Color;
 use bevy::core::Name;
 use bevy::core_pipeline::auto_exposure::AutoExposure;
 use bevy::core_pipeline::bloom::Bloom;
-use bevy::core_pipeline::experimental::taa::TemporalAntiAliasing;
 use bevy::core_pipeline::motion_blur::MotionBlur;
 use bevy::core_pipeline::post_process::ChromaticAberration;
 use bevy::hierarchy::BuildChildren;

@@ -1,3 +1,5 @@
+mod instancing;
+
 use bevy::asset::io::Reader;
 use bevy::asset::{AssetLoader, LoadContext};
 use bevy::math::{dvec3, DVec3};
@@ -10,6 +12,8 @@ use csv_async::StringRecord;
 use std::marker::PhantomData;
 use std::num::ParseFloatError;
 use std::str::FromStr;
+use bevy::ecs::query::QueryItem;
+use bevy::render::extract_component::ExtractComponent;
 use thiserror::Error;
 
 pub struct StarryNightPlugin<Prec: GridPrecision>(PhantomData<Prec>);
@@ -22,11 +26,11 @@ impl<Prec: GridPrecision> Default for StarryNightPlugin<Prec> {
 
 impl<Prec: GridPrecision> Plugin for StarryNightPlugin<Prec> {
     fn build(&self, app: &mut App) {
-        app.init_asset_loader::<StarsAssetLoader>()
+        app.add_plugins(instancing::InstanceMaterialPlugin)
+            .init_asset_loader::<StarsAssetLoader>()
             .init_asset::<Stars>()
             .register_type::<Stars>()
             .register_type::<Star>()
-            .init_resource::<StaticAssets>()
             .add_systems(Update, spawn_stars::<Prec>);
     }
 }
@@ -137,21 +141,6 @@ fn parse_record<T: FromStr<Err = ParseFloatError>>(
 
 #[derive(Debug, Clone, Asset, Reflect, Deref)]
 pub struct Stars(Vec<Star>);
-
-#[derive(Resource)]
-struct StaticAssets {
-    sphere: Handle<Mesh>,
-}
-
-impl FromWorld for StaticAssets {
-    fn from_world(world: &mut World) -> Self {
-        Self {
-            sphere: world
-                .resource_mut::<Assets<_>>()
-                .add(Sphere::new(1.0).mesh().ico(2).unwrap()),
-        }
-    }
-}
 
 #[derive(Debug, Clone, Component, Reflect)]
 #[reflect(Component)]
@@ -304,8 +293,6 @@ impl<Prec: GridPrecision> Default for StarryNight<Prec> {
 struct InsertedStar;
 
 fn spawn_stars<Prec: GridPrecision>(
-    static_assets: Res<StaticAssets>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
     mut commands: Commands,
     q: Query<(Entity, &Parent, &Star), Without<InsertedStar>>,
     q_parent: Query<&ReferenceFrame<Prec>>,
@@ -320,12 +307,6 @@ fn spawn_stars<Prec: GridPrecision>(
 
         let mut entity_commands = commands.entity(entity);
         entity_commands.insert((
-            Mesh3d(static_assets.sphere.clone()),
-            MeshMaterial3d(materials.add(StandardMaterial {
-                emissive: star.material_emissive_color().into(),
-                unlit: true,
-                ..default()
-            })),
             Transform::from_translation(pos).with_scale(Vec3::splat(star.mesh_scale())),
             cell,
             InsertedStar,
